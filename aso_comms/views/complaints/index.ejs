@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complaints Hub - AsoComms</title>
+</head>
+
+<body
+    style="font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 20px auto; padding: 0 20px; color: #0f172a; background-color: #f8fafc;">
+
+    <%- include('../partials/navbar') %>
+        <%- include('../partials/flash') %>
+
+            <!-- HEADER & ACTION -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <div>
+                    <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #0f172a;">⚠️ Complaints & Disputes
+                    </h1>
+                    <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">
+                        <%= isManagement ? 'Review and resolve customer disputes across all registered devices.'
+                            : 'View status updates for your submitted device issues.' %>
+                    </p>
+                </div>
+
+                <% if (!isManagement) { %>
+                    <a href="/complaints/new"
+                        style="background: #2563eb; color: white; padding: 10px 18px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);">
+                        ➕ Submit New Complaint
+                    </a>
+                    <% } else { %>
+                        <a href="/complaints/new"
+                            style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 8px 14px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 13px;">
+                            📝 Log Dispute for Customer
+                        </a>
+                        <% } %>
+            </div>
+
+            <!-- METRIC CARDS (VISIBLE ONLY TO CEO / MANAGERS / STAFF) -->
+            <% if (isManagement) { %>
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                    <div
+                        style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; border-left: 4px solid #ef4444;">
+                        <span
+                            style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Open</span>
+                        <h2 style="margin: 5px 0 0 0; color: #ef4444; font-size: 24px;">
+                            <%= metrics.open %>
+                        </h2>
+                    </div>
+                    <div
+                        style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; border-left: 4px solid #3b82f6;">
+                        <span
+                            style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Under
+                            Review</span>
+                        <h2 style="margin: 5px 0 0 0; color: #2563eb; font-size: 24px;">
+                            <%= metrics.underReview %>
+                        </h2>
+                    </div>
+                    <div
+                        style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; border-left: 4px solid #a855f7;">
+                        <span
+                            style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Escalated</span>
+                        <h2 style="margin: 5px 0 0 0; color: #a855f7; font-size: 24px;">
+                            <%= metrics.escalated %>
+                        </h2>
+                    </div>
+                    <div
+                        style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; border-left: 4px solid #10b981;">
+                        <span
+                            style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Resolved</span>
+                        <h2 style="margin: 5px 0 0 0; color: #10b981; font-size: 24px;">
+                            <%= metrics.resolved %>
+                        </h2>
+                    </div>
+                </div>
+                <% } %>
+
+                    <!-- STATUS FILTERS -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px;">
+                        <% const filters=['All', 'Open' , 'Under Review' , 'Escalated' , 'Resolved' ]; %>
+                            <% filters.forEach(filter=> { %>
+                                <a href="/complaints<%= filter === 'All' ? '' : '?status=' + encodeURIComponent(filter) %>"
+                                    style="padding: 7px 14px; border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: 600; white-space: nowrap; <%= currentFilter === filter ? 'background: #2563eb; color: white;' : 'background: white; color: #64748b; border: 1px solid #cbd5e1;' %>">
+                                    <%= filter %>
+                                </a>
+                                <% }); %>
+                    </div>
+
+                    <!-- COMPLAINT LIST -->
+                    <% if (complaints.length===0) { %>
+                        <div
+                            style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 40px; text-align: center; color: #64748b;">
+                            <p style="margin: 0 0 15px 0; font-size: 16px;">No complaints found under "<%= currentFilter
+                                    %>".</p>
+                            <% if (!isManagement) { %>
+                                <a href="/complaints/new"
+                                    style="background: #2563eb; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px;">
+                                    Submit a Complaint
+                                </a>
+                                <% } %>
+                        </div>
+                        <% } else { %>
+                            <div style="display: flex; flex-direction: column; gap: 15px;">
+                                <% complaints.forEach(complaint=> { %>
+                                    <div
+                                        style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+
+                                        <!-- TOP BAR: ID, DEVICE INFO, & STATUS BADGE -->
+                                        <div
+                                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                                            <div>
+                                                <span
+                                                    style="font-family: monospace; font-weight: 700; color: #3b82f6; font-size: 13px; background: #dbeafe; padding: 2px 8px; border-radius: 4px;">
+                                                    Ticket #<%= complaint.ticketId %>
+                                                </span>
+
+                                                <!-- SPECIFIC DEVICE DETAILS -->
+                                                <% if (complaint.repair) { %>
+                                                    <span
+                                                        style="background: #f1f5f9; color: #334155; font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 600; margin-left: 6px;">
+                                                        📱 <%= complaint.repair.deviceBrand || '' %>
+                                                            <%= complaint.repair.deviceModel || 'Device' %>
+                                                    </span>
+                                                    <% } %>
+
+                                                        <span
+                                                            style="color: #64748b; font-size: 12px; margin-left: 6px;">
+                                                            Category: <strong>
+                                                                <%= complaint.category %>
+                                                            </strong>
+                                                        </span>
+
+                                                        <h3 style="margin: 8px 0 0 0; font-size: 17px; color: #0f172a;">
+                                                            <%= complaint.subject %>
+                                                        </h3>
+                                            </div>
+
+                                            <!-- STATUS BADGE -->
+                                            <% if (complaint.status==='Open' ) { %>
+                                                <span
+                                                    style="background: #fef2f2; color: #dc2626; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 700;">🔴
+                                                    Open</span>
+                                                <% } else if (complaint.status==='Under Review' ) { %>
+                                                    <span
+                                                        style="background: #dbeafe; color: #1d4ed8; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 700;">🔵
+                                                        Under Review</span>
+                                                    <% } else if (complaint.status==='Escalated' ) { %>
+                                                        <span
+                                                            style="background: #f3e8ff; color: #7e22ce; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 700;">⚡
+                                                            Escalated</span>
+                                                        <% } else { %>
+                                                            <span
+                                                                style="background: #d1fae5; color: #047857; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 700;">✅
+                                                                Resolved</span>
+                                                            <% } %>
+                                        </div>
+
+                                        <!-- COMPLAINT DESCRIPTION -->
+                                        <p
+                                            style="margin: 0 0 12px 0; color: #334155; font-size: 14px; line-height: 1.5; background: #f8fafc; padding: 12px; border-radius: 6px;">
+                                            <%= complaint.description %>
+                                        </p>
+
+                                        <!-- METADATA FOOTER -->
+                                        <div
+                                            style="font-size: 12px; color: #64748b; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+                                            <span>
+                                                Submitted by: <strong>
+                                                    <%= complaint.customerName %>
+                                                </strong> (<%= complaint.customerPhone %>)
+                                            </span>
+                                            <span>
+                                                Submitted on: <%= new Date(complaint.createdAt).toLocaleDateString() %>
+                                            </span>
+                                        </div>
+
+                                        <!-- RESOLUTION NOTES (VISIBLE TO CUSTOMER & MANAGEMENT WHEN PRESENT) -->
+                                        <% if (complaint.resolutionNotes) { %>
+                                            <div
+                                                style="margin-top: 12px; background: #f0fdf4; border-left: 3px solid #10b981; padding: 10px 14px; font-size: 13px; color: #166534; border-radius: 0 6px 6px 0;">
+                                                <strong>Management Note / Resolution:</strong>
+                                                <%= complaint.resolutionNotes %>
+                                            </div>
+                                            <% } %>
+
+                                                <!-- MANAGEMENT STATUS UPDATE CONTROLS (CEO / MANAGER ONLY) -->
+                                                <% if (isManagement) { %>
+                                                    <div
+                                                        style="margin-top: 15px; padding-top: 12px; border-top: 1px dashed #e2e8f0;">
+                                                        <form
+                                                            action="/complaints/<%= complaint._id %>/status?_method=PATCH"
+                                                            method="POST"
+                                                            style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                                                            <input type="text" name="resolutionNotes"
+                                                                placeholder="Resolution or progress notes..."
+                                                                value="<%= complaint.resolutionNotes || '' %>"
+                                                                style="flex: 1; min-width: 200px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px;">
+
+                                                            <button type="submit" name="status" value="Open"
+                                                                style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer;">
+                                                                Re-Open
+                                                            </button>
+                                                            <button type="submit" name="status" value="Under Review"
+                                                                style="background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer;">
+                                                                Review
+                                                            </button>
+                                                            <button type="submit" name="status" value="Escalated"
+                                                                style="background: #a855f7; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer;">
+                                                                ⚡ Escalate
+                                                            </button>
+                                                            <button type="submit" name="status" value="Resolved"
+                                                                style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer;">
+                                                                ✅ Resolve
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                    <% } %>
+
+                                    </div>
+                                    <% }); %>
+                            </div>
+                            <% } %>
+
+</body>
+
+</html>

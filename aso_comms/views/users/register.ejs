@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Sign Up</title>
+</head>
+
+<body style="font-family: system-ui, -apple-system, sans-serif; background-color: #f8fafc; max-width: 420px; margin: 40px auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); color: #1e293b;">
+
+  <%- include('../partials/flash') %>
+
+  <h2 style="margin-top: 0; color: #0f172a; font-size: 24px; text-align: center; margin-bottom: 25px;">Create an Account</h2>
+
+  <form action="/register" method="POST">
+    <div style="margin-bottom: 16px;">
+      <label for="username" style="display:block; font-weight:600; margin-bottom:6px; font-size: 14px;">Username</label>
+      <input type="text" id="username" name="username" required
+        style="width:100%; padding:10px; box-sizing:border-box; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <label for="email" style="display:block; font-weight:600; margin-bottom:6px; font-size: 14px;">Email</label>
+      <input type="email" id="email" name="email" required
+        style="width:100%; padding:10px; box-sizing:border-box; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <label for="phoneNumber" style="display:block; font-weight:600; margin-bottom:6px; font-size: 14px;">Phone Number</label>
+      <input type="text" id="phoneNumber" name="phoneNumber" required placeholder="Must match workshop file"
+        style="width:100%; padding:10px; box-sizing:border-box; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
+    </div>
+
+    <div style="margin-bottom: 24px;">
+      <label for="password" style="display:block; font-weight:600; margin-bottom:6px; font-size: 14px;">Password</label>
+      <div style="position: relative; display: flex; align-items: center;">
+        <input type="password" id="password" name="password" required
+          style="width:100%; padding:10px 40px 10px 10px; box-sizing:border-box; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
+        <button type="button" id="toggleRegPassword"
+          style="position: absolute; right: 10px; background: none; border: none; cursor: pointer; font-size: 16px; padding: 0; color: #64748b;">👁️</button>
+      </div>
+    </div>
+
+    <button type="submit"
+      style="background-color: #22c55e; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; font-weight: 600;">Sign Up & Verify</button>
+  </form>
+
+  <p style="margin-top:20px; text-align:center; font-size: 14px; color: #64748b;">
+    Already have an account? <a href="/login" style="color: #22c55e; text-decoration: none; font-weight: 600;">Log In</a>
+  </p>
+
+  <script>
+    const toggleRegPassword = document.querySelector('#toggleRegPassword');
+    const regPassword = document.querySelector('#password');
+    toggleRegPassword.addEventListener('click', function () {
+      const type = regPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+      regPassword.setAttribute('type', type);
+      this.textContent = type === 'password' ? '👁️' : '🔒';
+    });
+  </script>
+</body>
+
+</html>

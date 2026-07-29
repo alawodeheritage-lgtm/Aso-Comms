@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Staff Account</title>
+</head>
+<body style="font-family: system-ui, sans-serif; background-color: #f8fafc; max-width: 420px; margin: 40px auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+    
+    <%- include('../partials/flash') %>
+
+    <h2 style="color: #0f172a; text-align: center; margin-bottom: 25px;">Create Staff (CEO / Manager)</h2>
+
+    <form action="/create-staff" method="POST">
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:600; font-size: 14px; margin-bottom:5px;">Username</label>
+            <input type="text" name="username" required style="width:100%; padding:10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; outline: none;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:600; font-size: 14px; margin-bottom:5px;">Email</label>
+            <input type="email" name="email" required style="width:100%; padding:10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; outline: none;">
+        </div>
+
+        <!-- Password Field with Toggle -->
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:600; font-size: 14px; margin-bottom:5px;">Password</label>
+            <div style="position: relative; display: flex; align-items: center;">
+                <input type="password" id="password" name="password" autocomplete="new-password" required style="width:100%; padding:10px 40px 10px 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; outline: none;">
+                <button type="button" id="togglePassword" style="position: absolute; right: 10px; background: none; border: none; cursor: pointer; font-size: 16px; padding: 0; color: #64748b;">👁️</button>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:600; font-size: 14px; margin-bottom:5px;">Role</label>
+            <select name="role" style="width:100%; padding:10px; border: 1px solid #cbd5e1; border-radius: 6px; background: white; box-sizing: border-box; outline: none;">
+                <option value="manager">Manager</option>
+                <option value="ceo">CEO</option>
+                <option value="staff">Staff</option>
+            </select>
+        </div>
+
+        <!-- Secret Key Field with Toggle -->
+        <div style="margin-bottom: 24px;">
+            <label style="display:block; font-weight:600; font-size: 14px; margin-bottom:5px;">Admin Secret Key</label>
+            <div style="position: relative; display: flex; align-items: center;">
+                <input type="password" id="secretKey" name="secretKey" autocomplete="one-time-code" required placeholder="Enter env secret key" style="width:100%; padding:10px 40px 10px 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; outline: none;">
+                <button type="button" id="toggleSecretKey" style="position: absolute; right: 10px; background: none; border: none; cursor: pointer; font-size: 16px; padding: 0; color: #64748b;">👁️</button>
+            </div>
+        </div>
+
+        <button type="submit" style="background-color: #0f172a; color: white; padding: 12px; border: none; border-radius: 6px; width: 100%; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s;">Create Account</button>
+    </form>
+
+    <script>
+        // Password Eye Toggle
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+        togglePassword.addEventListener('click', function () {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '🔒';
+        });
+
+        // Secret Key Eye Toggle
+        const toggleSecretKey = document.querySelector('#toggleSecretKey');
+        const secretKey = document.querySelector('#secretKey');
+        toggleSecretKey.addEventListener('click', function () {
+            const type = secretKey.getAttribute('type') === 'password' ? 'text' : 'password';
+            secretKey.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '🔒';
+        });
+    </script>
+</body>
+</html>

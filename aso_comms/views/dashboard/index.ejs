@@ -1,0 +1,304 @@
+<%- include('../partials/flash') %>
+
+    <div
+        style="display: flex; min-height: 100vh; font-family: 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; margin: -20px; padding: 0;">
+
+        <!-- ==================== SIDEBAR ==================== -->
+        <aside
+            style="width: 280px; background: #0f172a; color: white; padding: 30px 20px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #1e293b; position: sticky; top: 0; height: 100vh; box-sizing: border-box;">
+            <div>
+                <h2
+                    style="margin: 0 0 30px 0; font-size: 22px; letter-spacing: -0.5px; border-bottom: 1px solid #1e293b; padding-bottom: 15px; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
+                    📱 Aso Comms
+                </h2>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <a href="/dashboard"
+                        style="text-decoration: none; text-align: left; background: #1e293b; color: white; padding: 12px 16px; border-radius: 6px; font-weight: bold; font-size: 14px; border-left: 4px solid #38bdf8;">
+                        📊 My Dashboard
+                    </a>
+                    <a href="/complaints"
+                        style="text-decoration: none; text-align: left; color: #94a3b8; padding: 12px 16px; border-radius: 6px; font-weight: bold; font-size: 14px; transition: 0.2s;"
+                        onmouseover="this.style.background='#1e293b'; this.style.color='#f8fafc'"
+                        onmouseout="this.style.background='transparent'; this.style.color='#94a3b8'">
+                        ⚠️ Lodge / View Complaints
+                    </a>
+                </div>
+            </div>
+
+            <div>
+                <div style="font-size: 12px; color: #64748b; margin-bottom: 10px; padding: 0 10px;">Logged in as:</div>
+                <div
+                    style="font-weight: bold; color: #f8fafc; font-size: 14px; margin-bottom: 20px; padding: 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    👤 <%= currentUser.username %>
+                </div>
+                <hr style="border: 0; border-top: 1px solid #1e293b; margin-bottom: 20px;">
+                <a href="/logout"
+                    style="text-decoration: none; display: flex; align-items: center; justify-content: center; background: #ef4444; color: white; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 14px;">
+                    🚪 Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- ==================== MAIN PANEL ==================== -->
+        <main style="flex-grow: 1; padding: 40px; box-sizing: border-box; overflow-y: auto; max-width: 1200px;">
+
+            <!-- Welcome Header -->
+            <div
+                style="background: white; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                <h1 style="margin: 0; color: #0f172a; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">
+                    Welcome back, <%= currentUser.username %>!
+                </h1>
+                <p style="margin: 8px 0 0 0; color: #475569; font-size: 15px;">
+                    Monitor your current device repairs, real-time stage progress, financial transaction status, and
+                    tracking points down below.
+                </p>
+            </div>
+
+            <!-- Repairs & Invoice Section -->
+            <div
+                style="background: white; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                <h3
+                    style="margin: 0 0 25px 0; color: #0f172a; font-size: 20px; font-weight: 700; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    🛠️ My Active Repairs & Invoice Status
+                </h3>
+
+                <% if (!repairs || repairs.length===0) { %>
+                    <!-- ==================== ONBOARDING CALL TO ACTION STATE ==================== -->
+                    <div style="text-align: center; padding: 50px 20px; max-width: 600px; margin: 0 auto;">
+                        <div
+                            style="font-size: 55px; margin-bottom: 20px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));">
+                            📥
+                        </div>
+                        <h4 style="margin: 0 0 10px 0; color: #0f172a; font-size: 18px; font-weight: 700;">
+                            No Devices Logged in Our Workshop Yet
+                        </h4>
+                        <p style="margin: 0 auto 25px auto; color: #64748b; font-size: 14px; line-height: 1.6;">
+                            Ready to fix your device? Bring your phone, laptop, or gadget down to our repair desk
+                            counter. As soon as our engineers register it to your account workspace, your live tracking
+                            telemetry pipeline will spawn here instantly!
+                        </p>
+
+                        <!-- WhatsApp Call to Action -->
+                        <div style="margin-bottom: 30px;">
+                            <a href="https://wa.me/2348068676961?text=Hello%20Aso%20Comms,%20I%20just%20registered%20my%20account%20with%20username%20<%= encodeURIComponent(currentUser.username) %>%20and%20want%20to%20book%20a%20repair!"
+                                target="_blank"
+                                style="text-decoration: none; display: inline-flex; align-items: center; gap: 10px; background: #25d366; color: white; padding: 14px 28px; border-radius: 8px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25); transition: transform 0.2s;"
+                                onmouseover="this.style.transform='scale(1.03)'"
+                                onmouseout="this.style.transform='scale(1)'">
+                                <span style="font-size: 18px;">💬</span> Chat with Us on WhatsApp
+                            </a>
+                        </div>
+
+                        <!-- Dynamic Phone Verification Check Alert -->
+                        <div
+                            style="background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 20px; width: 100%; box-sizing: border-box; text-align: left; font-size: 13px; color: #475569;">
+                            <span
+                                style="font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                                💡 Intake Setup Verification
+                            </span>
+
+                            <% if (!currentUser.phoneNumber) { %>
+                                <p style="margin: 4px 0; color: #b45309;">
+                                    ⚠️ <strong>Notice:</strong> Your account profile currently doesn't have a phone
+                                    number linked. When you drop off your device, remember to give our shop clerks your
+                                    username so they can link it up manually:
+                                </p>
+                                <% } else { %>
+                                    <p style="margin: 4px 0; color: #166534;">
+                                        ✓ Your account contact phone record is logged securely in our grid pipeline.
+                                    </p>
+                                    <% } %>
+
+                                        <div
+                                            style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                            <span>Dropoff ID Reference:</span>
+                                            <strong
+                                                style="color: #38bdf8; background: #0f172a; padding: 4px 10px; border-radius: 4px; font-family: monospace; font-size: 13px;">
+                                                <%= currentUser.username %>
+                                            </strong>
+                                        </div>
+                        </div>
+                    </div>
+                    <% } else { %>
+                        <!-- ==================== REPAIRS LIST WORKSPACE VIEW ==================== -->
+                        <div style="display: flex; flex-direction: column; gap: 25px;">
+                            <% for (let repair of repairs) { %>
+                                <% const statusSteps=['Pending', 'Diagnosing' , 'Repairing' , 'Ready' , 'Collected' ];
+                                    const currentStatusIndex=statusSteps.indexOf(repair.status); const
+                                    totalEst=(repair.financials && repair.financials.totalEstimate) ?
+                                    Number(repair.financials.totalEstimate) : 0; const amtPaid=(repair.financials &&
+                                    repair.financials.amountPaid) ? Number(repair.financials.amountPaid) : 0; const
+                                    balDue=(repair.financials && repair.financials.balanceDue !==undefined) ?
+                                    Number(repair.financials.balanceDue) : (totalEst - amtPaid); %>
+
+                                    <div
+                                        style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; background: #f8fafc; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+
+                                        <!-- Header Info Line -->
+                                        <div
+                                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 15px;">
+                                            <div>
+                                                <h4
+                                                    style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 800;">
+                                                    <%= repair.deviceModel %>
+                                                </h4>
+                                                <span
+                                                    style="font-size: 13px; color: #64748b; font-weight: 500; margin-top: 4px; display: inline-block;">
+                                                    🎫 Ticket ID: <strong
+                                                        style="color: #0f172a; font-family: monospace;">
+                                                        <%= repair.ticketId || "Awaiting Assignment" %>
+                                                    </strong>
+                                                </span>
+                                            </div>
+
+                                            <!-- Status Badge -->
+                                            <div>
+                                                <% if (repair.status==='Ready' ) { %>
+                                                    <span
+                                                        style="background: #dcfce7; color: #15803d; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; text-transform: uppercase;">✅
+                                                        Ready</span>
+                                                    <% } else if (repair.status==='Repairing' ) { %>
+                                                        <span
+                                                            style="background: #dbeafe; color: #1d4ed8; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; text-transform: uppercase;">🛠️
+                                                            Repairing</span>
+                                                        <% } else if (repair.status==='Diagnosing' ) { %>
+                                                            <span
+                                                                style="background: #f3e8ff; color: #6b21a8; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; text-transform: uppercase;">🔍
+                                                                Diagnosing</span>
+                                                            <% } else if (repair.status==='Collected' ) { %>
+                                                                <span
+                                                                    style="background: #f4f4f5; color: #52525b; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; text-transform: uppercase;">📦
+                                                                    Collected</span>
+                                                                <% } else { %>
+                                                                    <span
+                                                                        style="background: #ffedd5; color: #c2410c; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; text-transform: uppercase;">⏳
+                                                                        <%= repair.status || 'Pending' %></span>
+                                                                    <% } %>
+                                            </div>
+                                        </div>
+
+                                        <!-- 🚀 VISUAL PROGRESS TRACKER -->
+                                        <div
+                                            style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                                            <div
+                                                style="display: flex; justify-content: space-between; align-items: center; position: relative; max-width: 100%; margin: 0 auto;">
+
+                                                <!-- Progress Bar Line Background -->
+                                                <div
+                                                    style="position: absolute; top: 16px; left: 20px; right: 20px; height: 4px; background: #e2e8f0; z-index: 1;">
+                                                </div>
+
+                                                <!-- Active Progress Bar Fill -->
+                                                <div
+                                                    style="position: absolute; top: 16px; left: 20px; height: 4px; background: #2563eb; z-index: 2; width: <%= Math.max(0, (currentStatusIndex / (statusSteps.length - 1)) * 93) %>%; transition: width 0.4s ease;">
+                                                </div>
+
+                                                <% statusSteps.forEach((step, index)=> {
+                                                    const isPassed = index <= currentStatusIndex; const
+                                                        isCurrent=index===currentStatusIndex; %>
+                                                        <div
+                                                            style="display: flex; flex-direction: column; align-items: center; position: relative; z-index: 3;">
+                                                            <div style="
+                        width: 32px; height: 32px; border-radius: 50%; 
+                        display: flex; align-items: center; justify-content: center; 
+                        font-weight: bold; font-size: 12px; 
+                        background: <%= isPassed ? '#2563eb' : '#ffffff' %>; 
+                        color: <%= isPassed ? '#ffffff' : '#94a3b8' %>; 
+                        border: 3px solid <%= isPassed ? '#2563eb' : '#cbd5e1' %>;
+                        box-shadow: <%= isCurrent ? '0 0 0 4px rgba(37, 99, 235, 0.15)' : 'none' %>;
+                      ">
+                                                                <% if (index < currentStatusIndex) { %> ✓ <% } else { %>
+                                                                        <%= index + 1 %>
+                                                                            <% } %>
+                                                            </div>
+
+                                                            <span style="
+                        margin-top: 6px; font-size: 11px; font-weight: <%= isCurrent ? '700' : '500' %>; 
+                        color: <%= isCurrent ? '#0f172a' : (isPassed ? '#334155' : '#94a3b8') %>;
+                        text-align: center;
+                      ">
+                                                                <%= step %>
+                                                            </span>
+                                                        </div>
+                                                        <% }) %>
+
+                                            </div>
+                                        </div>
+
+                                        <!-- Payment Profile Layout -->
+                                        <div style="margin-bottom: 20px;">
+                                            <span
+                                                style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 10px;">
+                                                💵 Payment Profile
+                                            </span>
+                                            <div
+                                                style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+
+                                                <div
+                                                    style="background: white; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                                    <div style="font-size: 11px; color: #64748b; font-weight: 600;">
+                                                        Total Estimate</div>
+                                                    <div
+                                                        style="font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 4px;">
+                                                        ₦<%= totalEst.toLocaleString() %>
+                                                    </div>
+                                                </div>
+
+                                                <div
+                                                    style="background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0;">
+                                                    <div style="font-size: 11px; color: #166534; font-weight: 600;">
+                                                        Amount Paid</div>
+                                                    <div
+                                                        style="font-size: 16px; font-weight: 700; color: #15803d; margin-top: 4px;">
+                                                        ₦<%= amtPaid.toLocaleString() %>
+                                                    </div>
+                                                </div>
+
+                                                <div
+                                                    style="background: #fff5f5; padding: 12px; border-radius: 8px; border: 1px solid #fed7d7;">
+                                                    <div style="font-size: 11px; color: #9b2c2c; font-weight: 600;">
+                                                        Balance Due</div>
+                                                    <div
+                                                        style="font-size: 16px; font-weight: 700; color: <%= balDue > 0 ? '#c53030' : '#15803d' %>; margin-top: 4px;">
+                                                        ₦<%= balDue.toLocaleString() %>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+
+                                        <!-- Diagnostic & Issue Notes -->
+                                        <div
+                                            style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 14px; display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                <strong
+                                                    style="color: #475569; font-weight: 600; display: block; margin-bottom: 2px;">Reported
+                                                    Issue / Notes:</strong>
+                                                <span style="color: #334155;">
+                                                    <%= repair.issue || "No diagnostic details registered yet." %>
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <a href="/repairs/<%= repair._id %>"
+                                                    style="display: inline-block; background: #0f172a; color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">
+                                                    🔍 Full Ticket
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <% } %>
+                        </div>
+                        <% } %>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ==================== FLOATING WHATSAPP BUTTON ==================== -->
+    <a href="https://wa.me/2348068676961?text=Hello%20Aso%20Comms,%20I'm%20logged%20into%20my%20dashboard%20and%20have%20a%20question."
+        target="_blank" title="Chat with Support"
+        style="position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #25d366; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; text-decoration: none; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 9999; transition: transform 0.2s;"
+        onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+        💬
+    </a>

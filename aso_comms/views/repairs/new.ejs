@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Repair - Bench Intake</title>
+</head>
+
+<body
+  style="font-family: system-ui, -apple-system, sans-serif; background-color: #f8fafc; max-width: 680px; margin: 40px auto; padding: 30px; color: #1e293b;">
+
+  <%- include('../partials/flash') %>
+
+    <div
+      style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+      <h1 style="margin-top: 0; font-size: 22px; color: #0f172a; margin-bottom: 6px;">🛠️ Log New Device to Bench</h1>
+      <p style="color: #64748b; font-size: 14px; margin-bottom: 25px;">Register device metrics, financials, and intake
+        diagnostics down into active inventory loops.</p>
+
+      <form action="/repairs" method="POST" style="display: flex; flex-direction: column; gap: 18px;">
+
+        <!-- 1. Customer Name -->
+        <div>
+          <label for="customerName"
+            style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Customer Name</label>
+          <input type="text" id="customerName" name="customerName" required placeholder="John Obi"
+            style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+        </div>
+
+        <!-- 2. Customer Email -->
+        <div>
+          <label for="customerEmail"
+            style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Customer Email</label>
+          <input type="email" id="customerEmail" name="customerEmail" required placeholder="john@example.com"
+            style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+        </div>
+
+        <!-- 3. Phone Number -->
+        <div>
+          <label for="phoneNumber" style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Phone
+            Number</label>
+          <input type="text" id="phoneNumber" name="phoneNumber" required placeholder="080..."
+            style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+        </div>
+
+        <!-- 4. Phone Model -->
+        <div>
+          <label for="deviceModel" style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Phone
+            Model</label>
+          <input type="text" id="deviceModel" name="deviceModel" required placeholder="iPhone 13 Pro"
+            style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+        </div>
+
+        <!-- 5. Issue Description -->
+        <div>
+          <label for="issueDescription"
+            style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Issue Description</label>
+          <textarea id="issueDescription" name="issueDescription"
+            placeholder="Describe the fault (e.g., Cracked screen, no display, battery drain...)" rows="3"
+            style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; font-family: inherit;"></textarea>
+        </div>
+
+        <!-- 6. INTAKE CHECKLIST: HARDWARE -->
+        <fieldset
+          style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; margin-top: 5px; background: #fafafa;">
+          <legend style="font-weight: 600; font-size: 14px; padding: 0 8px; color: #0f172a;">📱 Hardware Condition
+            (Check if functional at intake)</legend>
+          <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 8px; font-size: 13px;">
+            <label><input type="checkbox" name="hardware[powerButton]"> Power Button</label>
+            <label><input type="checkbox" name="hardware[screenTouch]"> Touch Screen</label>
+            <label><input type="checkbox" name="hardware[displayImage]"> Display / LCD</label>
+            <label><input type="checkbox" name="hardware[chargingPort]"> Charging Port</label>
+            <label><input type="checkbox" name="hardware[frontCamera]"> Front Camera</label>
+            <label><input type="checkbox" name="hardware[backCamera]"> Back Camera</label>
+            <label><input type="checkbox" name="hardware[speakers]"> Speakers</label>
+            <label><input type="checkbox" name="hardware[microphone]"> Microphone</label>
+            <label><input type="checkbox" name="hardware[wifiBluetooth]"> Wi-Fi / Bluetooth</label>
+            <label><input type="checkbox" name="hardware[faceIdFingerprint]"> Biometrics / Face ID</label>
+          </div>
+        </fieldset>
+
+        <!-- 7. INTAKE CHECKLIST: ACCESSORIES -->
+        <fieldset style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; background: #fafafa;">
+          <legend style="font-weight: 600; font-size: 14px; padding: 0 8px; color: #0f172a;">📦 Accessories Received
+          </legend>
+          <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 8px; font-size: 13px;">
+            <label><input type="checkbox" name="accessories[simTray]"> SIM Tray Included</label>
+            <label><input type="checkbox" name="accessories[memoryCard]"> SD / Memory Card</label>
+            <label><input type="checkbox" name="accessories[protectiveCase]"> Protective Case</label>
+            <label><input type="checkbox" name="accessories[charger]"> Charger / Cable</label>
+            <label><input type="checkbox" name="accessories[originalBox]"> Original Box</label>
+          </div>
+        </fieldset>
+
+        <!-- Financials Section -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div>
+            <label for="totalEstimate"
+              style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Total Cost (₦)</label>
+            <input type="number" id="totalEstimate" name="financials[totalEstimate]" required placeholder="0"
+              oninput="document.getElementById('amountPaid').max = this.value" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;
+            font-size: 14px;">
+          </div>
+
+          <div>
+            <label for="amountPaid"
+              style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Deposit Paid (₦)</label>
+            <input type="number" id="amountPaid" name="financials[amountPaid]" required placeholder="0"
+              style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+          </div>
+        </div>
+
+        <div
+          style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 10px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+          <a href="/repairs"
+            style="text-decoration: none; color: #64748b; font-size: 14px; font-weight: 500; padding: 10px 16px;">Cancel</a>
+          <button type="submit"
+            style="background-color: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;">Log
+            to Bench</button>
+        </div>
+      </form>
+    </div>
+</body>
+
+</html>

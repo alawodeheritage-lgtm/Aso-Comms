@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track Your Repair - Aso Comms</title>
+</head>
+
+<body
+  style="background-color: #0f172a; font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; color: #f8fafc; text-align: center; padding: 80px 20px; min-height: 100vh; margin: 0; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+
+  <div style="width: 100%; max-width: 500px;">
+    <!-- Brand Header -->
+    <h1 style="color: #ea580c; font-size: 42px; margin: 0 0 10px 0; font-weight: 800; letter-spacing: -1px;">ASO COMMS
+    </h1>
+    <p style="color: #94a3b8; font-size: 16px; margin: 0 0 40px 0; font-weight: 500;">Real-time device repair tracking
+      pipeline</p>
+
+    <!-- Flash Errors/Success Notifications -->
+    <% if (error && error.length) { %>
+      <div
+        style="background-color: #7f1d1d33; border: 1px solid #fca5a533; border-left: 4px solid #ef4444; color: #fca5a5; padding: 14px; margin-bottom: 20px; border-radius: 8px; text-align: left; font-size: 14px;">
+        <strong>Error:</strong>
+        <%= error %>
+      </div>
+      <% } %>
+
+        <% if (success && success.length) { %>
+          <div
+            style="background-color: #064e3b33; border: 1px solid #6ee7b733; border-left: 4px solid #10b981; color: #a7f3d0; padding: 14px; margin-bottom: 20px; border-radius: 8px; text-align: left; font-size: 14px;">
+            <strong>Success:</strong>
+            <%= success %>
+          </div>
+          <% } %>
+
+            <!-- Search Form Container -->
+            <form action="/track/results" method="GET"
+              style="background: #1e293b; border: 1px solid #334155; padding: 40px 30px; border-radius: 16px; text-align: left; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
+              <h3 style="margin: 0 0 20px 0; color: #f8fafc; font-size: 20px; font-weight: 700;">Track Device Status
+              </h3>
+
+              <label for="ticketId"
+                style="display: block; margin-bottom: 10px; font-weight: 600; color: #94a3b8; font-size: 14px;">Enter
+                Ticket ID / Customer ID</label>
+              <input type="text" id="ticketId" name="ticketId" placeholder="e.g. ASO-2026-X84A" required
+                style="width: 100%; padding: 14px; background: #0f172a; border: 1px solid #475569; border-radius: 8px; font-size: 16px; color: #ffffff; box-sizing: border-box; margin-bottom: 24px; text-transform: uppercase; font-family: monospace; font-weight: bold; outline: none; transition: border-color 0.2s;"
+                onfocus="this.style.borderColor='#ea580c'" onblur="this.style.borderColor='#475569'">
+
+              <button type="submit"
+                style="background-color: #ea580c; color: white; border: none; width: 100%; padding: 16px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s;"
+                onmouseover="this.style.backgroundColor='#c2410c'" onmouseout="this.style.backgroundColor='#ea580c'">
+                Search System
+              </button>
+            </form>
+
+            <div style="margin-top: 35px;">
+              <a href="/repairs"
+                style="color: #64748b; text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s;"
+                onmouseover="this.style.color='#f8fafc'" onmouseout="this.style.color='#64748b'">
+                → Go to Manager Dashboard
+              </a>
+            </div>
+  </div>
+
+</body>
+
+</html>

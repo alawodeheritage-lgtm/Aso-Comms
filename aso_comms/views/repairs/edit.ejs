@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Repair Status</title>
+</head>
+
+<body
+  style="font-family: system-ui, -apple-system, sans-serif; background-color: #f8fafc; max-width: 550px; margin: 40px auto; padding: 30px; color: #1e293b;">
+
+  <%- include('../partials/flash') %>
+
+    <div
+      style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+      <h1 style="margin-top: 0; font-size: 22px; color: #0f172a; margin-bottom: 5px;">📝 Edit Record</h1>
+      <p style="color: #64748b; font-size: 14px; margin-bottom: 25px;">
+        Updating file properties for Customer: <strong style="color: #0f172a;">
+          <%= repair.customerName %>
+        </strong>
+      </p>
+
+      <form action="/repairs/<%= repair._id %>?_method=PUT" method="POST"
+        style="display: flex; flex-direction: column; gap: 18px;">
+
+        <!-- Customer Name -->
+        <div>
+          <label for="customerName"
+            style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Customer Name</label>
+          <input type="text" id="customerName" name="customerName" value="<%= repair.customerName %>" required
+            style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+        </div>
+
+        <!-- ADDED: Customer Email (Fixes Error Code [400]) -->
+        <div>
+          <label for="customerEmail"
+            style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Customer Email</label>
+          <input type="email" id="customerEmail" name="customerEmail" value="<%= repair.customerEmail || '' %>" required
+            style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+        </div>
+
+        <!-- Phone Number -->
+        <div>
+          <label for="phoneNumber" style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Phone
+            Number</label>
+          <input type="text" id="phoneNumber" name="phoneNumber"
+            value="<%= repair.phoneNumber || repair.customerPhone %>" required
+            style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+        </div>
+
+        <!-- Phone Model -->
+        <div>
+          <label for="deviceModel" style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Phone
+            Model</label>
+          <input type="text" id="deviceModel" name="deviceModel" value="<%= repair.deviceModel || repair.deviceName %>"
+            required
+            style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+        </div>
+
+        <!-- Workshop Status Bench Progress -->
+        <div>
+          <label for="status" style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Workshop
+            Status Bench Progress</label>
+          <select name="status" id="status"
+            style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background-color: white;">
+            <option value="Pending" <%=repair.status==='Pending' ? 'selected' : '' %>>Pending (Awaiting Desk)</option>
+            <option value="Diagnosing" <%=repair.status==='Diagnosing' ? 'selected' : '' %>>Diagnosing (On Bench)
+            </option>
+            <option value="Repairing" <%=repair.status==='Repairing' ? 'selected' : '' %>>Repairing (Parts/Fixing)
+            </option>
+            <option value="Ready" <%=repair.status==='Ready' ? 'selected' : '' %>>Ready (Awaiting Pickup)</option>
+            <option value="Collected" <%=repair.status==='Collected' ? 'selected' : '' %>>Collected (Closed Ticket)
+            </option>
+          </select>
+        </div>
+
+        <!-- Financial Nested Object Mapping -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div>
+            <label for="totalEstimate"
+              style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Total Cost (₦)</label>
+            <input type="number" id="totalEstimate" name="financials[totalEstimate]"
+              value="<%= repair.financials?.totalEstimate || 0 %>" required
+              style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+          </div>
+          <div>
+            <label for="amountPaid"
+              style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Deposit Paid (₦)</label>
+            <input type="number" id="amountPaid" name="financials[amountPaid]"
+              value="<%= repair.financials?.amountPaid || 0 %>"
+              style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+          </div>
+        </div>
+
+        <div
+          style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 10px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+          <a href="/repairs/<%= repair._id %>"
+            style="text-decoration: none; color: #64748b; font-size: 14px; font-weight: 500; padding: 10px 16px;">Cancel</a>
+          <button type="submit"
+            style="background-color: #f59e0b; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;">
+            Update Repair
+          </button>
+        </div>
+      </form>
+    </div>
+</body>
+
+</html>

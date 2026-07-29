@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Error - Aso Comms</title>
+</head>
+
+<body
+  style="background-color: #fef2f2; font-family: sans-serif; color: #991b1b; padding: 40px 20px; text-align: center;">
+
+  <div
+    style="max-width: 500px; margin: 0 auto; background: white; border: 1px solid #fca5a5; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+    <span style="font-size: 48px;">⚠️</span>
+    <h1 style="margin: 10px 0; font-size: 24px; font-weight: 800;">Application Alert</h1>
+
+    <div
+      style="background: #fff5f5; border-left: 4px solid #ef4444; padding: 12px; margin: 20px 0; text-align: left; border-radius: 0 4px 4px 0;">
+      <p style="margin: 0; font-family: monospace; font-size: 15px; color: #b91c1c;">
+        <strong>Error Code [<%= err.statusCode %>]:</strong>
+        <%= err.message %>
+      </p>
+    </div>
+
+    <a href="/repairs"
+      style="background-color: #1e1b4b; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block; margin-top: 10px;">
+      Return to Safety Workspace
+    </a>
+  </div>
+
+</body>
+
+</html>

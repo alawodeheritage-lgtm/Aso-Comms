@@ -1,0 +1,11 @@
+<% if (success && success.length) { %>
+    <div style="background-color: #dcfce7; border-left: 4px solid #22c55e; color: #166534; padding: 14px; margin: 15px auto; max-width: 1200px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <strong>Success:</strong> <%= success %>
+    </div>
+<% } %>
+
+<% if (error && error.length) { %>
+    <div style="background-color: #fee2e2; border-left: 4px solid #ef4444; color: #991b1b; padding: 14px; margin: 15px auto; max-width: 1200px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <strong>Alert:</strong> <%= error %>
+    </div>
+<% } %>

@@ -1,0 +1,858 @@
+// src/pages/Admin/Repairs.tsx
+import React, { useState, useEffect } from 'react';
+import StatusBadge from '../../components/StatusBadge';
+import Modal from '../../components/Modal';
+import Toast from '../../components/Toast';
+import { mapStatus } from '../../utils/statusMapper';
+import { repairsAPI } from '../../api/repairs';
+
+interface Repair {
+  _id: string;
+  deviceModel: string;
+  customerName: string;
+  customerEmail: string;
+  phoneNumber: string;
+  issueDescription: string;
+  status: 'pending' | 'in-progress' | 'under-review' | 'resolved' | 'escalated';
+  dateLogged: string;
+  assignedTo: string;
+  priority: 'high' | 'medium' | 'low';
+  images?: string[];
+  totalEstimate?: number;
+  amountPaid?: number;
+  balanceDue?: number;
+  paymentStatus?: 'Unpaid' | 'Partial' | 'Paid in Full';
+  ticketId?: string;
+}
+
+const AdminRepairs: React.FC = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRepair, setSelectedRepair] = useState<Repair | null>(null);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [repairs, setRepairs] = useState<Repair[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [submitLoading, setSubmitLoading] = useState(false);
+  
+  // Toast state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+
+  // Form State - Core fields only
+  const [device, setDevice] = useState('');
+  const [customer, setCustomer] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [issue, setIssue] = useState('');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [assignedTo, setAssignedTo] = useState('Unassigned');
+  const [images, setImages] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [totalEstimate, setTotalEstimate] = useState<number>(0);
+  const [amountPaid, setAmountPaid] = useState<number>(0);
+  const [balanceDue, setBalanceDue] = useState<number>(0);
+  const [paymentStatus, setPaymentStatus] = useState<'Unpaid' | 'Partial' | 'Paid in Full'>('Unpaid');
+
+  // Smart calculation function
+  const calculateFinancials = (estimate: number, paid: number) => {
+    const validPaid = Math.min(paid, estimate);
+    const balance = estimate - validPaid;
+    let status: 'Unpaid' | 'Partial' | 'Paid in Full' = 'Unpaid';
+
+    if (estimate === 0) {
+      status = 'Unpaid';
+    } else if (validPaid === 0) {
+      status = 'Unpaid';
+    } else if (validPaid >= estimate) {
+      status = 'Paid in Full';
+    } else {
+      status = 'Partial';
+    }
+
+    return {
+      amountPaid: validPaid,
+      balanceDue: balance,
+      paymentStatus: status
+    };
+  };
+
+  // Handle total estimate change - allows empty values
+  const handleTotalEstimateChange = (value: string) => {
+    if (value === '' || value === '-') {
+      setTotalEstimate(0);
+      const result = calculateFinancials(0, amountPaid);
+      setAmountPaid(result.amountPaid);
+      setBalanceDue(result.balanceDue);
+      setPaymentStatus(result.paymentStatus);
+      return;
+    }
+
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0) {
+      const newEstimate = numValue;
+      setTotalEstimate(newEstimate);
+      
+      const result = calculateFinancials(newEstimate, amountPaid);
+      setAmountPaid(result.amountPaid);
+      setBalanceDue(result.balanceDue);
+      setPaymentStatus(result.paymentStatus);
+    }
+  };
+
+  // Handle amount paid change - allows empty values
+  const handleAmountPaidChange = (value: string) => {
+    if (value === '' || value === '-') {
+      setAmountPaid(0);
+      const result = calculateFinancials(totalEstimate, 0);
+      setBalanceDue(result.balanceDue);
+      setPaymentStatus(result.paymentStatus);
+      return;
+    }
+
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0) {
+      const newPaid = Math.min(numValue, totalEstimate);
+      setAmountPaid(newPaid);
+      
+      const result = calculateFinancials(totalEstimate, newPaid);
+      setBalanceDue(result.balanceDue);
+      setPaymentStatus(result.paymentStatus);
+    }
+  };
+
+  // Get payment status color
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'Paid in Full':
+        return 'bg-green-100 text-green-700 border-green-200';
+      case 'Partial':
+        return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'Unpaid':
+        return 'bg-red-100 text-red-700 border-red-200';
+      default:
+        return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
+  };
+
+  // Get payment status icon
+  const getPaymentStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Paid in Full':
+        return 'check_circle';
+      case 'Partial':
+        return 'pending';
+      case 'Unpaid':
+        return 'warning';
+      default:
+        return 'info';
+    }
+  };
+
+  // Fetch repairs from backend
+  const fetchRepairs = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await repairsAPI.getAll();
+      console.log('Raw API response:', response);
+      
+      // Handle different response structures
+      let repairsData = [];
+      if (response.repairs) {
+        repairsData = response.repairs;
+      } else if (response.data) {
+        repairsData = response.data;
+      } else if (Array.isArray(response)) {
+        repairsData = response;
+      } else {
+        repairsData = [];
+      }
+      
+      console.log('Parsed repairs data:', repairsData);
+      setRepairs(Array.isArray(repairsData) ? repairsData : []);
+    } catch (err: any) {
+      console.error('Failed to fetch repairs:', err);
+      setError(err.message || 'Failed to load repairs. Please refresh.');
+      setToast({ 
+        message: err.response?.data?.error || 'Failed to load repairs. Please refresh.', 
+        type: 'error' 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch on component mount
+  useEffect(() => {
+    fetchRepairs();
+  }, []);
+
+  const getPriorityColor = (priority: Repair['priority']) => {
+    switch (priority) {
+      case 'high':
+        return 'text-red-700 bg-red-50 border-red-200/60';
+      case 'medium':
+        return 'text-amber-800 bg-amber-50 border-amber-200/60';
+      case 'low':
+        return 'text-slate-600 bg-slate-100 border-slate-200';
+      default:
+        return 'text-slate-600 bg-slate-100 border-slate-200';
+    }
+  };
+
+  // Image Upload Handler - Optional
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setImageFiles((prev) => [...prev, ...filesArray]);
+      
+      const newImageUrls = filesArray.map((file) => URL.createObjectURL(file));
+      setImages((prev) => [...prev, ...newImageUrls]);
+    }
+  };
+
+  // Remove Uploaded Image
+  const handleRemoveImage = (indexToRemove: number) => {
+    URL.revokeObjectURL(images[indexToRemove]);
+    setImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+    setImageFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  // Form Submit Handler - Simplified
+  const handleCreateRepair = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!device || !customer || !email || !phone || !issue) {
+      setToast({ message: 'Please fill in all required fields', type: 'error' });
+      return;
+    }
+
+    if (amountPaid > totalEstimate) {
+      setToast({ message: 'Amount paid cannot exceed total estimate!', type: 'error' });
+      return;
+    }
+
+    setSubmitLoading(true);
+
+    try {
+      // Simplified repair data - NO hardware or accessories
+      const repairData = {
+        customerName: customer.trim(),
+        phoneNumber: phone.trim(),
+        customerEmail: email.trim().toLowerCase(),
+        deviceModel: device.trim(),
+        issueDescription: issue.trim(),
+        status: 'Pending',
+        priority: priority,
+        assignedTo: assignedTo,
+        financials: {
+          totalEstimate: Number(totalEstimate) || 0,
+          amountPaid: Number(amountPaid) || 0,
+        },
+      };
+
+      console.log('Sending repair data:', JSON.stringify(repairData, null, 2));
+
+      const response = await repairsAPI.create(repairData);
+      console.log('Repair saved successfully:', response);
+      
+      const newRepair = response.repair || response;
+      
+      // Add the new repair to the list
+      setRepairs([newRepair, ...repairs]);
+      
+      // Clear form and close modal
+      handleCloseModal();
+      
+      // Refresh the list to get the latest data
+      await fetchRepairs();
+      
+      setToast({ message: 'Repair logged successfully! 🎉', type: 'success' });
+    } catch (err: any) {
+      console.error('Failed to create repair:', err);
+      console.error('Error response:', err.response?.data);
+      
+      const errorMessage = err.response?.data?.error || 
+                          err.response?.data?.message || 
+                          err.message ||
+                          'Failed to create repair. Please try again.';
+      setToast({ message: errorMessage, type: 'error' });
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedRepair(null);
+    setDevice('');
+    setCustomer('');
+    setEmail('');
+    setPhone('');
+    setIssue('');
+    setPriority('medium');
+    setAssignedTo('Unassigned');
+    images.forEach(img => URL.revokeObjectURL(img));
+    setImages([]);
+    setImageFiles([]);
+    setTotalEstimate(0);
+    setAmountPaid(0);
+    setBalanceDue(0);
+    setPaymentStatus('Unpaid');
+  };
+
+  const filteredRepairs =
+    activeFilter === 'all'
+      ? repairs
+      : repairs.filter((r) => r.status?.toLowerCase() === activeFilter || r.status === activeFilter);
+
+  // Calculate summary stats
+  const totalRepairs = repairs.length;
+  const pendingRepairs = repairs.filter(r => r.status?.toLowerCase() === 'pending' || r.status === 'Pending').length;
+  const inProgressRepairs = repairs.filter(r => r.status?.toLowerCase() === 'in-progress' || r.status === 'in-progress' || r.status === 'under-review').length;
+  const completedRepairs = repairs.filter(r => r.status?.toLowerCase() === 'resolved' || r.status === 'Resolved' || r.status === 'Collected').length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+          <p className="mt-3 text-sm font-medium text-slate-500">Loading repairs...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+        <span className="material-symbols-outlined text-red-600 text-3xl">error</span>
+        <p className="text-sm font-medium text-red-600 mt-2">{error}</p>
+        <button 
+          onClick={fetchRepairs}
+          className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
+            Repair Management
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Manage repair requests, device intake, and technician assignments
+          </p>
+        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-500/20 w-full sm:w-auto"
+        >
+          <span className="material-symbols-outlined text-lg">add</span>
+          New Repair
+        </button>
+      </div>
+      
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <div className="bg-white rounded-xl p-3 text-center border border-slate-200/80 shadow-sm">
+          <p className="text-lg sm:text-xl font-bold text-blue-600">{totalRepairs}</p>
+          <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">Total Repairs</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 text-center border border-slate-200/80 shadow-sm">
+          <p className="text-lg sm:text-xl font-bold text-amber-600">{pendingRepairs}</p>
+          <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">Pending</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 text-center border border-slate-200/80 shadow-sm">
+          <p className="text-lg sm:text-xl font-bold text-blue-600">{inProgressRepairs}</p>
+          <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">In Progress</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 text-center border border-slate-200/80 shadow-sm">
+          <p className="text-lg sm:text-xl font-bold text-emerald-600">{completedRepairs}</p>
+          <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">Completed</p>
+        </div>
+      </div>
+
+      {/* Status Filters */}
+      <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 scrollbar-hide border-b border-slate-200/60">
+        {['all', 'pending', 'in-progress', 'under-review', 'resolved', 'escalated'].map(
+          (filter) => (
+            <button
+              key={filter}
+              onClick={() => setActiveFilter(filter)}
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold whitespace-nowrap transition-all ${
+                activeFilter === filter
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+              }`}
+            >
+              {filter.charAt(0).toUpperCase() + filter.slice(1).replace('-', ' ')}
+            </button>
+          )
+        )}
+      </div>
+
+      {/* Repair Cards List */}
+      <div className="space-y-3 sm:space-y-3.5">
+        {filteredRepairs.length === 0 ? (
+          <div className="bg-white rounded-2xl p-8 sm:p-12 text-center border border-slate-200/80">
+            <span className="material-symbols-outlined text-3xl sm:text-4xl text-slate-400 mb-2">
+              build_circle
+            </span>
+            <p className="text-sm sm:text-base font-bold text-slate-700">No repairs found</p>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              There are no device repairs matching your selected status filter.
+            </p>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors"
+            >
+              Create First Repair
+            </button>
+          </div>
+        ) : (
+          filteredRepairs.map((repair) => (
+            <div
+              key={repair._id || repair.id}
+              className="bg-white rounded-2xl p-3 sm:p-5 shadow-2xs border border-slate-200/80 hover:border-slate-300 transition-all"
+            >
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+                      {repair.deviceModel || repair.device || 'Unknown Device'}
+                    </h3>
+                    <StatusBadge 
+                      status={mapStatus(repair.status)} 
+                      size="sm" 
+                    />
+                    {repair.ticketId && (
+                      <span className="text-[10px] font-mono bg-slate-100 px-2 py-0.5 rounded-full text-slate-500">
+                        {repair.ticketId}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-600 mt-1 line-clamp-2">
+                    {repair.issueDescription || repair.issue || 'No description'}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-4 mt-2 text-[10px] sm:text-xs text-slate-500">
+                    <span>
+                      <span className="font-semibold text-slate-700">{repair.customerName || repair.customer || 'Unknown'}</span>
+                    </span>
+                    <span className="hidden xs:inline">•</span>
+                    <span className="hidden xs:inline">
+                      {repair.dateLogged ? new Date(repair.dateLogged).toLocaleDateString() : 'N/A'}
+                    </span>
+                    <span className="hidden xs:inline">•</span>
+                    <span className="hidden sm:inline">
+                      Assigned: <span className="font-semibold text-slate-700">{repair.assignedTo || 'Unassigned'}</span>
+                    </span>
+                    {repair.images && repair.images.length > 0 && (
+                      <>
+                        <span className="hidden xs:inline">•</span>
+                        <span className="inline-flex items-center gap-1 text-blue-600 font-bold bg-blue-50 px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[11px]">
+                          <span className="material-symbols-outlined text-[10px] sm:text-xs">photo_camera</span>
+                          {repair.images.length}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between md:justify-end gap-2 sm:gap-3 pt-2 md:pt-0 border-t md:border-0 border-slate-100 w-full md:w-auto">
+                  <span
+                    className={`px-1.5 sm:px-2.5 py-0.5 rounded-md border text-[8px] sm:text-[10px] font-bold uppercase tracking-wider ${getPriorityColor(
+                      repair.priority || 'medium'
+                    )}`}
+                  >
+                    {repair.priority || 'medium'}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setSelectedRepair(repair);
+                      setIsModalOpen(true);
+                    }}
+                    className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-bold transition-colors"
+                  >
+                    View
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Modal - New Repair Form (Simplified - NO Hardware/Accessories) */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={selectedRepair ? 'Repair Details' : 'New Repair Request'}
+        size="lg"
+      >
+        {selectedRepair ? (
+          // View Details Mode
+          <div className="space-y-3 sm:space-y-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200/60">
+              <div>
+                <p className="text-[10px] sm:text-xs font-bold text-slate-500">Device</p>
+                <p className="text-xs sm:text-sm font-extrabold text-slate-900 mt-0.5">
+                  {selectedRepair.deviceModel || selectedRepair.device || 'Unknown'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] sm:text-xs font-bold text-slate-500">Status</p>
+                <div className="mt-0.5">
+                  <StatusBadge status={selectedRepair.status?.toLowerCase() || 'pending'} size="sm" />
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] sm:text-xs font-bold text-slate-500">Priority</p>
+                <span
+                  className={`inline-block text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded border mt-0.5 ${getPriorityColor(
+                    selectedRepair.priority || 'medium'
+                  )}`}
+                >
+                  {(selectedRepair.priority || 'medium').toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <p className="text-[10px] sm:text-xs font-bold text-slate-500">Assigned</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
+                  {selectedRepair.assignedTo || 'Unassigned'}
+                </p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[10px] sm:text-xs font-bold text-slate-500">Customer</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
+                  {selectedRepair.customerName || selectedRepair.customer || 'Unknown'}
+                </p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[10px] sm:text-xs font-bold text-slate-500">Issue Description</p>
+                <p className="text-xs sm:text-sm text-slate-700 mt-0.5 bg-white p-2 rounded-lg border border-slate-200">
+                  {selectedRepair.issueDescription || selectedRepair.issue || 'No description'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 pt-2 sm:pt-3">
+              <button className="flex-1 bg-blue-600 text-white py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-xs">
+                Assign Technician
+              </button>
+              <button className="flex-1 border border-slate-200 text-slate-700 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-100 transition-colors">
+                Update Status
+              </button>
+            </div>
+          </div>
+        ) : (
+          // Create New Repair Form - Simplified
+          <form onSubmit={handleCreateRepair} className="space-y-3 sm:space-y-4">
+            {/* Device Model */}
+            <div>
+              <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
+                Device Model <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={device}
+                onChange={(e) => setDevice(e.target.value)}
+                className="w-full h-10 sm:h-11 px-3 sm:px-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none transition-all text-sm text-slate-800 placeholder-slate-400"
+                placeholder="e.g. iPhone 14 Pro, Samsung S23"
+              />
+            </div>
+
+            {/* Customer Name */}
+            <div>
+              <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
+                Customer Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={customer}
+                onChange={(e) => setCustomer(e.target.value)}
+                className="w-full h-10 sm:h-11 px-3 sm:px-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none transition-all text-sm text-slate-800 placeholder-slate-400"
+                placeholder="Customer full name"
+              />
+            </div>
+
+            {/* Customer Email */}
+            <div>
+              <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
+                Customer Email <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-base">
+                  mail
+                </span>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full h-10 sm:h-11 pl-8 sm:pl-10 pr-3 sm:pr-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none transition-all text-sm text-slate-800 placeholder-slate-400"
+                  placeholder="customer@example.com"
+                />
+              </div>
+            </div>
+
+            {/* Phone Number */}
+            <div>
+              <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
+                Phone Number <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-base">
+                  call
+                </span>
+                <input
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full h-10 sm:h-11 pl-8 sm:pl-10 pr-3 sm:pr-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none transition-all text-sm text-slate-800 placeholder-slate-400"
+                  placeholder="+234 800 000 0000"
+                />
+              </div>
+            </div>
+
+            {/* Issue Description */}
+            <div>
+              <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
+                Issue Description <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                required
+                value={issue}
+                onChange={(e) => setIssue(e.target.value)}
+                className="w-full min-h-[70px] sm:min-h-[90px] p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none transition-all text-sm text-slate-800 placeholder-slate-400 resize-none"
+                placeholder="Describe physical condition or issues..."
+              />
+            </div>
+
+            {/* Priority & Assigned To */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div>
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
+                  Priority <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value as 'low' | 'medium' | 'high')}
+                  className="w-full h-10 sm:h-11 px-3 sm:px-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none transition-all text-sm text-slate-800 font-semibold"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
+                  Assign To <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  className="w-full h-10 sm:h-11 px-3 sm:px-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none transition-all text-sm text-slate-800 font-semibold"
+                >
+                  <option value="Unassigned">Unassigned</option>
+                  <option value="Tech_Support">Tech_Support</option>
+                  <option value="Senior_Tech">Senior_Tech</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Financials Section */}
+            <div className="bg-slate-50 rounded-xl p-3 sm:p-4 border border-slate-200/60">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="material-symbols-outlined text-blue-600 text-base">payments</span>
+                <h4 className="text-[10px] sm:text-xs font-bold text-slate-700">Financial Details</h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div>
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
+                    Total Estimate (₦) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={totalEstimate === 0 ? '' : totalEstimate}
+                    onChange={(e) => handleTotalEstimateChange(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    className="w-full h-10 sm:h-11 px-3 sm:px-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none transition-all text-sm text-slate-800 placeholder-slate-400"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
+                    Amount Paid (₦)
+                  </label>
+                  <input
+                    type="number"
+                    value={amountPaid === 0 ? '' : amountPaid}
+                    onChange={(e) => handleAmountPaidChange(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    className="w-full h-10 sm:h-11 px-3 sm:px-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none transition-all text-sm text-slate-800 placeholder-slate-400"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                  {amountPaid > totalEstimate && totalEstimate > 0 && (
+                    <p className="text-[8px] sm:text-[10px] text-red-500 mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs sm:text-sm">warning</span>
+                      Cannot exceed total!
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Financial Summary */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-slate-200/60">
+                <div className="text-center">
+                  <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase">Total</p>
+                  <p className="text-xs sm:text-sm font-bold text-slate-900">₦{totalEstimate.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase">Paid</p>
+                  <p className="text-xs sm:text-sm font-bold text-emerald-600">₦{amountPaid.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase">Balance</p>
+                  <p className={`text-xs sm:text-sm font-bold ${balanceDue > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    ₦{balanceDue.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Payment Status Badge */}
+              <div className="mt-2 sm:mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+                <span className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase">Payment Status</span>
+                <span className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold border ${getPaymentStatusColor(paymentStatus)} flex items-center gap-1 w-fit sm:w-auto`}>
+                  <span className="material-symbols-outlined text-sm">{getPaymentStatusIcon(paymentStatus)}</span>
+                  {paymentStatus}
+                </span>
+              </div>
+            </div>
+
+            {/* Photo Intake Upload Section - OPTIONAL */}
+            <div>
+              <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
+                Device Condition Photos (Optional)
+              </label>
+
+              <label className="border-2 border-dashed border-slate-200 rounded-2xl p-4 sm:p-5 text-center hover:bg-slate-50 transition-colors cursor-pointer group flex flex-col items-center justify-center">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <span className="material-symbols-outlined text-slate-400 group-hover:text-blue-600 text-2xl sm:text-3xl mb-1 transition-colors">
+                  photo_camera
+                </span>
+                <p className="text-[10px] sm:text-xs font-bold text-slate-800">
+                  Tap to take photos or upload images <span className="text-slate-400 font-normal">(Optional)</span>
+                </p>
+                <p className="text-[9px] sm:text-[11px] text-slate-400 mt-0.5">
+                  Capture device condition, scratches, or damages
+                </p>
+              </label>
+
+              {images.length > 0 && (
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 sm:gap-2 mt-2 sm:mt-3">
+                  {images.map((imgUrl, idx) => (
+                    <div
+                      key={idx}
+                      className="relative group aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100"
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`Upload intake ${idx}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(idx)}
+                        className="absolute top-0.5 right-0.5 bg-slate-900/80 hover:bg-red-600 text-white rounded-full p-0.5 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[10px] sm:text-xs block">close</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitLoading}
+              className="w-full h-10 sm:h-11 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-500/20 text-sm mt-2 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {submitLoading ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+                  Saving...
+                </>
+              ) : (
+                'Log Repair Request'
+              )}
+            </button>
+          </form>
+        )}
+      </Modal>
+
+      {/* Material Symbols Styling */}
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+          vertical-align: middle;
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @media (min-width: 480px) {
+          .xs\\:inline {
+            display: inline !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default AdminRepairs;

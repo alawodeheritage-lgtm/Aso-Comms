@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repair Work Order - <%= repair.ticketId %>
+  </title>
+</head>
+
+<body
+  style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 680px; margin: 30px auto; padding: 0 20px; color: #1e293b; background-color: #f8fafc;">
+
+  <%- include('../partials/navbar') %>
+    <%- include('../partials/flash') %>
+
+      <div
+        style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+
+        <!-- ==================== TRACKING HEADER ==================== -->
+        <div
+          style="background-color: #f1f5f9; border-left: 5px solid #f97316; padding: 15px 20px; margin-bottom: 25px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span
+              style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+              Shop Tracking Receipt ID
+            </span>
+            <h2
+              style="margin: 3px 0 0 0; font-family: monospace; color: #0f172a; font-size: 26px; letter-spacing: 1px;">
+              <%= repair.ticketId || 'NO TICKET ID LOGGED' %>
+            </h2>
+          </div>
+
+          <!-- STATUS BADGE -->
+          <div>
+            <% if (repair.status==='Ready' ) { %>
+              <span
+                style="background: #dcfce7; color: #15803d; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px;">✅
+                Ready</span>
+              <% } else if (repair.status==='Repairing' ) { %>
+                <span
+                  style="background: #dbeafe; color: #1d4ed8; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px;">🛠️
+                  Repairing</span>
+                <% } else if (repair.status==='Diagnosing' ) { %>
+                  <span
+                    style="background: #f3e8ff; color: #6b21a8; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px;">🔍
+                    Diagnosing</span>
+                  <% } else if (repair.status==='Collected' ) { %>
+                    <span
+                      style="background: #f4f4f5; color: #52525b; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px;">📦
+                      Collected</span>
+                    <% } else { %>
+                      <span
+                        style="background: #ffedd5; color: #c2410c; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 13px;">⏳
+                        <%= repair.status || 'Pending' %></span>
+                      <% } %>
+          </div>
+        </div>
+
+        <h1
+          style="font-size: 22px; margin: 0 0 20px 0; color: #0f172a; font-weight: 800; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+          Device: <%= repair.deviceModel %>
+        </h1>
+
+        <% const statusSteps=['Pending', 'Diagnosing' , 'Repairing' , 'Ready' , 'Collected' ]; const
+          currentStatusIndex=statusSteps.indexOf(repair.status); %>
+
+          <!-- 🚀 VISUAL PROGRESS TRACKER -->
+          <div
+            style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; position: relative; max-width: 700px; margin: 0 auto;">
+
+              <!-- Background Connecting Line -->
+              <div
+                style="position: absolute; top: 18px; left: 30px; right: 30px; height: 4px; background: #e2e8f0; z-index: 1;">
+              </div>
+
+              <!-- Dynamic Active Progress Fill -->
+              <div
+                style="position: absolute; top: 18px; left: 30px; height: 4px; background: #2563eb; z-index: 2; width: <%= Math.max(0, (currentStatusIndex / (statusSteps.length - 1)) * 100) %>%; transition: width 0.4s ease;">
+              </div>
+
+              <% statusSteps.forEach((step, index)=> {
+                const isPassed = index <= currentStatusIndex; const isCurrent=index===currentStatusIndex; %>
+                  <div
+                    style="display: flex; flex-direction: column; align-items: center; position: relative; z-index: 3;">
+                    <!-- Step Circle Badge -->
+                    <div style="
+              width: 38px; height: 38px; border-radius: 50%; 
+              display: flex; align-items: center; justify-content: center; 
+              font-weight: bold; font-size: 13px; 
+              background: <%= isPassed ? '#2563eb' : '#ffffff' %>; 
+              color: <%= isPassed ? '#ffffff' : '#94a3b8' %>; 
+              border: 3px solid <%= isPassed ? '#2563eb' : '#cbd5e1' %>;
+              box-shadow: <%= isCurrent ? '0 0 0 4px rgba(37, 99, 235, 0.15)' : 'none' %>;
+              transition: all 0.3s ease;
+            ">
+                      <% if (index < currentStatusIndex) { %>
+                        ✓
+                        <% } else { %>
+                          <%= index + 1 %>
+                            <% } %>
+                    </div>
+
+                    <!-- Step Label Text -->
+                    <span style="
+              margin-top: 8px; font-size: 12px; font-weight: <%= isCurrent ? '700' : '500' %>; 
+              color: <%= isCurrent ? '#0f172a' : (isPassed ? '#334155' : '#94a3b8') %>;
+              text-align: center;
+            ">
+                      <%= step %>
+                    </span>
+                  </div>
+                  <% }) %>
+
+            </div>
+          </div>
+
+          <!-- ==================== 👤 CUSTOMER INFORMATION ==================== -->
+          <div
+            style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
+            <h4
+              style="margin: 0 0 12px 0; color: #475569; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; font-weight: 800;">
+              👤 Customer Information
+            </h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+              <div>
+                <span style="color: #64748b; font-size: 12px; display: block;">Customer Name</span>
+                <strong style="color: #0f172a;">
+                  <%= repair.customerName %>
+                </strong>
+              </div>
+              <div>
+                <span style="color: #64748b; font-size: 12px; display: block;">Phone Number</span>
+                <strong style="color: #0f172a;">
+                  <%= repair.phoneNumber || repair.customerPhone || 'Not Provided' %>
+                </strong>
+              </div>
+              <div style="grid-column: span 2;">
+                <span style="color: #64748b; font-size: 12px; display: block;">Email Address</span>
+                <strong style="color: #0f172a;">
+                  <%= repair.email || repair.customerEmail || 'Not Provided' %>
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- ==================== 📱 HARDWARE & ACCESSORIES INTAKE ==================== -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <!-- Hardware Summary -->
+            <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <h4
+                style="margin: 0 0 12px 0; color: #475569; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; font-weight: 800;">
+                📱 Intake Hardware Condition
+              </h4>
+              <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px;">
+                <% if (repair.hardwareChecklist) { %>
+                  <% const hwList=typeof repair.hardwareChecklist.toObject==='function' ?
+                    repair.hardwareChecklist.toObject() : repair.hardwareChecklist; %>
+                    <% Object.entries(hwList).forEach(([key, working])=> { %>
+                      <% if (key !=='_id' ) { %>
+                        <li style="padding: 4px 0;">
+                          <%= working ? '✅' : '❌' %>
+                            <strong style="text-transform: capitalize;">
+                              <%= key.replace(/([A-Z])/g, ' $1' ) %>:
+                            </strong>
+                            <%= working ? 'Functional at Intake' : 'Faulty / Non-Functional' %>
+                        </li>
+                        <% } %>
+                          <% }) %>
+                            <% } else { %>
+                              <li style="color: #64748b; font-style: italic;">No checklist recorded</li>
+                              <% } %>
+              </ul>
+            </div>
+
+            <!-- Accessories Summary -->
+            <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <h4
+                style="margin: 0 0 12px 0; color: #475569; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; font-weight: 800;">
+                📦 Accessories Deposited
+              </h4>
+              <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px;">
+                <% if (repair.accessoriesChecklist) { %>
+                  <% const accList=typeof repair.accessoriesChecklist.toObject==='function' ?
+                    repair.accessoriesChecklist.toObject() : repair.accessoriesChecklist; %>
+                    <% Object.entries(accList).forEach(([key, present])=> { %>
+                      <% if (key !=='_id' ) { %>
+                        <li style="padding: 4px 0;">
+                          <%= present ? '🟢' : '⚪' %>
+                            <strong style="text-transform: capitalize;">
+                              <%= key.replace(/([A-Z])/g, ' $1' ) %>:
+                            </strong>
+                            <%= present ? 'Retained with Workshop' : 'Not Provided' %>
+                        </li>
+                        <% } %>
+                          <% }) %>
+                            <% } else { %>
+                              <li style="color: #64748b; font-style: italic;">No accessories recorded</li>
+                              <% } %>
+              </ul>
+            </div>
+          </div>
+
+          <!-- ==================== 💰 FINANCIAL DETAILS ==================== -->
+          <div
+            style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
+            <h4
+              style="margin: 0 0 12px 0; color: #475569; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; font-weight: 800;">
+              💳 Financial Breakdown
+            </h4>
+
+            <% const estimate=(repair.financials && repair.financials.totalEstimate) ?
+              Number(repair.financials.totalEstimate) : 0; const paid=(repair.financials &&
+              repair.financials.amountPaid) ? Number(repair.financials.amountPaid) : 0; const balance=(repair.financials
+              && repair.financials.balanceDue !==undefined) ? Number(repair.financials.balanceDue) : (estimate - paid);
+              %>
+
+              <ul style="list-style: none; padding: 0; margin: 0; line-height: 2; font-size: 14px;">
+                <li style="display: flex; justify-content: space-between;">
+                  <span style="color: #64748b;">Total Estimate:</span>
+                  <strong>₦<%= estimate.toLocaleString() %></strong>
+                </li>
+                <li style="display: flex; justify-content: space-between;">
+                  <span style="color: #64748b;">Amount Paid:</span>
+                  <strong style="color: #16a34a;">₦<%= paid.toLocaleString() %></strong>
+                </li>
+                <li
+                  style="display: flex; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 6px; margin-top: 6px;">
+                  <span style="color: #64748b;">Balance Due:</span>
+                  <strong style="color: <%= balance > 0 ? '#ef4444' : '#16a34a' %>;">
+                    ₦<%= balance.toLocaleString() %>
+                  </strong>
+                </li>
+                <li style="display: flex; justify-content: space-between; font-size: 12px; color: #64748b;">
+                  <span>Payment Status:</span>
+                  <span style="font-weight: bold; text-transform: uppercase;">
+                    <%= (repair.financials && repair.financials.paymentStatus) ? repair.financials.paymentStatus
+                      : 'Unpaid' %>
+                  </span>
+                </li>
+              </ul>
+          </div>
+
+          <!-- ==================== 📝 AUDIT & LOG DETAILS ==================== -->
+          <div
+            style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 14px 18px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+            <div>
+              <span style="color: #64748b;">Logged By:</span>
+              <strong style="color: #3b82f6;">
+                👤 <%= repair.owner ? (repair.owner.username || repair.owner.name) : 'Staff / System' %>
+              </strong>
+            </div>
+            <div>
+              <span style="color: #64748b;">Date Intake:</span>
+              <strong style="color: #475569;">
+                <%= new Date(repair.createdAt || Date.now()).toLocaleDateString() %>
+              </strong>
+            </div>
+          </div>
+
+          <!-- ==================== TECHNICIAN WORKBENCH CONTROLS ==================== -->
+          <% if (currentUser && (currentUser.role==='manager' || currentUser.role==='ceo' || currentUser.isStaff)) { %>
+            <div
+              style="margin-top: 25px; padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+              <h4
+                style="margin: 0 0 15px 0; color: #64748b; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; font-weight: bold;">
+                Workbench Operational Controls
+              </h4>
+
+              <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+
+                <!-- Action 1: Start Diagnostics -->
+                <% if (repair.status==='Pending' || !repair.status) { %>
+                  <form action="/repairs/<%= repair._id %>/status?_method=PATCH" method="POST" style="margin: 0;">
+                    <input type="hidden" name="status" value="Diagnosing">
+                    <button type="submit"
+                      style="background: #a855f7; color: white; border: none; padding: 9px 14px; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                      🔍 Start Diagnostics
+                    </button>
+                  </form>
+                  <% } %>
+
+                    <!-- Action 2: Move to Repair -->
+                    <% if (repair.status==='Diagnosing' ) { %>
+                      <form action="/repairs/<%= repair._id %>/status?_method=PATCH" method="POST" style="margin: 0;">
+                        <input type="hidden" name="status" value="Repairing">
+                        <button type="submit"
+                          style="background: #2563eb; color: white; border: none; padding: 9px 14px; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                          🛠️ Mark as Under Repair
+                        </button>
+                      </form>
+                      <% } %>
+
+                        <!-- Action 3: Mark Ready -->
+                        <% if (repair.status==='Repairing' || repair.status==='Diagnosing' ) { %>
+                          <form action="/repairs/<%= repair._id %>/status?_method=PATCH" method="POST"
+                            style="margin: 0;">
+                            <input type="hidden" name="status" value="Ready">
+                            <button type="submit"
+                              style="background: #16a34a; color: white; border: none; padding: 9px 14px; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                              ✅ Mark Ready
+                            </button>
+                          </form>
+                          <% } %>
+
+                            <!-- Action 4: Archive as Collected -->
+                            <% if (repair.status==='Ready' ) { %>
+                              <% if (balance <=0) { %>
+                                <form action="/repairs/<%= repair._id %>/status?_method=PATCH" method="POST"
+                                  style="margin: 0;">
+                                  <input type="hidden" name="status" value="Collected">
+                                  <button type="submit"
+                                    style="background: #71717a; color: white; border: none; padding: 9px 14px; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                                    📦 Archive as Collected
+                                  </button>
+                                </form>
+                                <% } else { %>
+                                  <button disabled
+                                    style="background: #e2e8f0; color: #94a3b8; border: 1px solid #cbd5e1; padding: 9px 14px; font-weight: bold; border-radius: 6px; cursor: not-allowed; font-size: 13px;"
+                                    title="Cannot collect while balance is pending">
+                                    🔒 Payment Pending (₦<%= balance.toLocaleString() %> due)
+                                  </button>
+                                  <% } %>
+                                    <% } %>
+
+                                      <!-- Reset Trigger -->
+                                      <% if (repair.status && repair.status !=='Pending' ) { %>
+                                        <form action="/repairs/<%= repair._id %>/status?_method=PATCH" method="POST"
+                                          style="margin-left: auto;">
+                                          <input type="hidden" name="status" value="Pending">
+                                          <button type="submit"
+                                            style="background: none; border: 1px dashed #cbd5e1; color: #64748b; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                            🔄 Reset
+                                          </button>
+                                        </form>
+                                        <% } %>
+
+              </div>
+            </div>
+            <% } %>
+
+              <!-- ==================== FILE MANAGEMENT NAVIGATION ==================== -->
+              <div
+                style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <a href="/repairs" style="color: #64748b; text-decoration: none; font-size: 14px; font-weight: 600;">
+                  ← Back to Directory
+                </a>
+
+                <div style="display: flex; gap: 10px; align-items: center;">
+                  <% if (currentUser && (currentUser.role==='manager' || currentUser.role==='ceo' ||
+                    currentUser.isStaff)) { %>
+                    <a href="/repairs/<%= repair._id %>/edit"
+                      style="background-color: #2563eb; color: white; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
+                      📝 Edit Details
+                    </a>
+                    <% } %>
+
+                      <% if (currentUser && (currentUser.role==='manager' || currentUser.role==='ceo' )) { %>
+                        <form action="/repairs/<%= repair._id %>?_method=DELETE" method="POST"
+                          onsubmit="return confirm('Are you sure you want to permanently delete ticket <%= repair.ticketId %>?');"
+                          style="display: inline; margin: 0;">
+                          <button type="submit"
+                            style="background: #ef4444; color: white; border: none; padding: 10px 16px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                            🗑️ Delete Ticket
+                          </button>
+                        </form>
+                        <% } %>
+                </div>
+              </div>
+
+      </div>
+
+</body>
+
+</html>

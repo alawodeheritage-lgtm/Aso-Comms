@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submit Complaint - AsoComms</title>
+</head>
+
+<body
+  style="font-family: system-ui, -apple-system, sans-serif; max-width: 650px; margin: 30px auto; padding: 0 20px; color: #0f172a; background-color: #f8fafc;">
+
+  <%- include('../partials/navbar') %>
+    <%- include('../partials/flash') %>
+
+      <div
+        style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+
+        <div style="margin-bottom: 24px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px;">
+          <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #0f172a;">⚠️ Submit a Complaint</h1>
+          <p style="margin: 6px 0 0 0; color: #64748b; font-size: 14px;">
+            Tell us about the issue with your repair service or device.
+          </p>
+        </div>
+
+        <!-- DEVICE PREVIEW BANNER -->
+        <% if (prefilledRepair) { %>
+          <div
+            style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-size: 13px; color: #1e40af;">
+            <strong>📱 Linked Device Ticket Found:</strong><br>
+            <span>Ticket #<%= prefilledRepair.ticketId %> — <%= prefilledRepair.deviceBrand || '' %>
+                  <%= prefilledRepair.deviceModel || 'Device' %></span>
+          </div>
+          <% } %>
+
+            <form action="/complaints" method="POST" style="display: flex; flex-direction: column; gap: 18px;">
+
+              <!-- REPAIR TICKET SELECTION -->
+              <div>
+                <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #334155;">
+                  Select Repair Ticket / Device <span style="color: #ef4444;">*</span>
+                </label>
+
+                <% if (userRepairs && userRepairs.length> 1) { %>
+                  <!-- Dropdown menu for users with multiple repairs -->
+                  <select name="ticketId" required
+                    style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: white; box-sizing: border-box; font-weight: 600;">
+                    <option value="">-- Choose a device repair ticket --</option>
+                    <% userRepairs.forEach(function(repair) { %>
+                      <option value="<%= repair.ticketId %>" <%=(ticketId===repair.ticketId) ? 'selected' : '' %>>
+                        [Ticket #<%= repair.ticketId %>] - <%= repair.deviceBrand || '' %>
+                            <%= repair.deviceModel || 'Device' %>
+                              (<%= repair.status || 'In Progress' %>)
+                      </option>
+                      <% }); %>
+                  </select>
+                  <% } else { %>
+                    <!-- Standard text input for 1 device or direct ticket input -->
+                    <input type="text" name="ticketId" required value="<%= ticketId %>" placeholder="e.g. ASO-9021"
+                      style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box; text-transform: uppercase; font-family: monospace; font-weight: 700; background: <%= ticketId ? '#f8fafc' : 'white' %>;">
+                    <% } %>
+              </div>
+
+              <!-- CUSTOMER NAME & PHONE (2-COLUMN GRID) -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                  <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #334155;">
+                    Your Name <span style="color: #ef4444;">*</span>
+                  </label>
+                  <input type="text" name="customerName" required
+                    value="<%= (prefilledRepair && prefilledRepair.customerName) ? prefilledRepair.customerName : (user.fullName || user.username || '') %>"
+                    placeholder="John Doe"
+                    style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #334155;">
+                    Phone Number <span style="color: #ef4444;">*</span>
+                  </label>
+                  <input type="tel" name="customerPhone" required
+                    value="<%= (prefilledRepair && (prefilledRepair.phoneNumber || prefilledRepair.customerPhone || prefilledRepair.phone)) ? (prefilledRepair.phoneNumber || prefilledRepair.customerPhone || prefilledRepair.phone) : (user.phoneNumber || user.phone || '') %>"
+                    placeholder="08012345678"
+                    style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                </div>
+              </div> <!-- CLOSED GRID DIV HERE -->
+
+              <!-- CATEGORY -->
+              <div>
+                <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #334155;">
+                  Issue Category <span style="color: #ef4444;">*</span>
+                </label>
+                <select name="category" required
+                  style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: white; box-sizing: border-box;">
+                  <option value="">Select Category...</option>
+                  <option value="Delay in Repair">Delay in Repair</option>
+                  <option value="Faulty Repair / Issue Unresolved">Faulty Repair / Issue Unresolved</option>
+                  <option value="Billing / Pricing Dispute">Billing / Pricing Dispute</option>
+                  <option value="Staff Behavior">Staff Behavior</option>
+                  <option value="Damaged Part / Device">Damaged Part / Device</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <!-- SUBJECT -->
+              <div>
+                <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #334155;">
+                  Subject Summary <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="text" name="subject" required
+                  placeholder="Brief summary (e.g., Screen replacement still flickers)"
+                  style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+              </div>
+
+              <!-- DESCRIPTION -->
+              <div>
+                <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #334155;">
+                  Detailed Description <span style="color: #ef4444;">*</span>
+                </label>
+                <textarea name="description" rows="5" required placeholder="Describe what went wrong in detail..."
+                  style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box; line-height: 1.5;"></textarea>
+              </div>
+
+              <!-- BUTTONS -->
+              <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 10px;">
+                <a href="/complaints"
+                  style="padding: 10px 18px; text-decoration: none; color: #64748b; font-weight: 600; font-size: 14px;">
+                  Cancel
+                </a>
+                <button type="submit"
+                  style="background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer;">
+                  Submit Complaint
+                </button>
+              </div>
+
+            </form>
+      </div>
+
+</body>
+
+</html>
