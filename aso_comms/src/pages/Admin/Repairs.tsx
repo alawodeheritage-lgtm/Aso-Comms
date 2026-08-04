@@ -5,6 +5,7 @@ import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
 import { mapStatus } from '../../utils/statusMapper';
 import { repairsAPI } from '../../api/repairs';
+import ImageUpload from '../../components/ImageUpload';
 
 interface Repair {
   _id: string;
@@ -13,7 +14,7 @@ interface Repair {
   customerEmail: string;
   phoneNumber: string;
   issueDescription: string;
-  status: 'pending' | 'in-progress' | 'under-review' | 'resolved' | 'escalated';
+  status: 'Pending' | 'Diagnosing' | 'Repairing' | 'Ready' | 'Collected';
   dateLogged: string;
   assignedTo: string;
   priority: 'high' | 'medium' | 'low';
@@ -21,9 +22,18 @@ interface Repair {
   totalEstimate?: number;
   amountPaid?: number;
   balanceDue?: number;
-  paymentStatus?: 'Unpaid' | 'Partial' | 'Paid in Full';
+  paymentStatus?: 'Unpaid' | 'Partial / Deposit Logged' | 'Paid in Full';
   ticketId?: string;
 }
+
+// Status options from schema
+const STATUS_OPTIONS = [
+  { value: 'Pending', label: 'Pending', color: 'bg-red-50 text-red-700 border-red-200' },
+  { value: 'Diagnosing', label: 'Diagnosing', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+  { value: 'Repairing', label: 'Repairing', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+  { value: 'Ready', label: 'Ready', color: 'bg-green-50 text-green-700 border-green-200' },
+  { value: 'Collected', label: 'Collected', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+];
 
 const AdminRepairs: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,7 +43,8 @@ const AdminRepairs: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
-  
+  const [statusChangeLoading, setStatusChangeLoading] = useState(false);
+
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
@@ -50,13 +61,15 @@ const AdminRepairs: React.FC = () => {
   const [totalEstimate, setTotalEstimate] = useState<number>(0);
   const [amountPaid, setAmountPaid] = useState<number>(0);
   const [balanceDue, setBalanceDue] = useState<number>(0);
-  const [paymentStatus, setPaymentStatus] = useState<'Unpaid' | 'Partial' | 'Paid in Full'>('Unpaid');
+  const [paymentStatus, setPaymentStatus] = useState<'Unpaid' | 'Partial / Deposit Logged' | 'Paid in Full'>('Unpaid');
+  const [repairImages, setRepairImages] = useState<any[]>([]);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
 
   // Smart calculation function
   const calculateFinancials = (estimate: number, paid: number) => {
     const validPaid = Math.min(paid, estimate);
     const balance = estimate - validPaid;
-    let status: 'Unpaid' | 'Partial' | 'Paid in Full' = 'Unpaid';
+    let status: 'Unpaid' | 'Partial / Deposit Logged' | 'Paid in Full' = 'Unpaid';
 
     if (estimate === 0) {
       status = 'Unpaid';
@@ -65,7 +78,7 @@ const AdminRepairs: React.FC = () => {
     } else if (validPaid >= estimate) {
       status = 'Paid in Full';
     } else {
-      status = 'Partial';
+      status = 'Partial / Deposit Logged';
     }
 
     return {
@@ -90,7 +103,7 @@ const AdminRepairs: React.FC = () => {
     if (!isNaN(numValue) && numValue >= 0) {
       const newEstimate = numValue;
       setTotalEstimate(newEstimate);
-      
+
       const result = calculateFinancials(newEstimate, amountPaid);
       setAmountPaid(result.amountPaid);
       setBalanceDue(result.balanceDue);
@@ -112,7 +125,7 @@ const AdminRepairs: React.FC = () => {
     if (!isNaN(numValue) && numValue >= 0) {
       const newPaid = Math.min(numValue, totalEstimate);
       setAmountPaid(newPaid);
-      
+
       const result = calculateFinancials(totalEstimate, newPaid);
       setBalanceDue(result.balanceDue);
       setPaymentStatus(result.paymentStatus);
@@ -124,7 +137,7 @@ const AdminRepairs: React.FC = () => {
     switch (status) {
       case 'Paid in Full':
         return 'bg-green-100 text-green-700 border-green-200';
-      case 'Partial':
+      case 'Partial / Deposit Logged':
         return 'bg-amber-100 text-amber-700 border-amber-200';
       case 'Unpaid':
         return 'bg-red-100 text-red-700 border-red-200';
@@ -138,7 +151,7 @@ const AdminRepairs: React.FC = () => {
     switch (status) {
       case 'Paid in Full':
         return 'check_circle';
-      case 'Partial':
+      case 'Partial / Deposit Logged':
         return 'pending';
       case 'Unpaid':
         return 'warning';
@@ -154,8 +167,7 @@ const AdminRepairs: React.FC = () => {
       setError('');
       const response = await repairsAPI.getAll();
       console.log('Raw API response:', response);
-      
-      // Handle different response structures
+
       let repairsData = [];
       if (response.repairs) {
         repairsData = response.repairs;
@@ -166,15 +178,15 @@ const AdminRepairs: React.FC = () => {
       } else {
         repairsData = [];
       }
-      
+
       console.log('Parsed repairs data:', repairsData);
       setRepairs(Array.isArray(repairsData) ? repairsData : []);
     } catch (err: any) {
       console.error('Failed to fetch repairs:', err);
       setError(err.message || 'Failed to load repairs. Please refresh.');
-      setToast({ 
-        message: err.response?.data?.error || 'Failed to load repairs. Please refresh.', 
-        type: 'error' 
+      setToast({
+        message: err.response?.data?.error || 'Failed to load repairs. Please refresh.',
+        type: 'error'
       });
     } finally {
       setLoading(false);
@@ -185,6 +197,48 @@ const AdminRepairs: React.FC = () => {
   useEffect(() => {
     fetchRepairs();
   }, []);
+
+  // Handle status change
+  const handleStatusChange = async (repairId: string, newStatus: string) => {
+    if (statusChangeLoading) return;
+
+    setStatusChangeLoading(true);
+    try {
+      const response = await repairsAPI.updateStatus(repairId, newStatus);
+      console.log('Status updated:', response);
+
+      // Update the repair in the local state
+      setRepairs(prevRepairs =>
+        prevRepairs.map(repair =>
+          repair._id === repairId
+            ? { ...repair, status: newStatus as Repair['status'] }
+            : repair
+        )
+      );
+
+      // Update selected repair if it's the one being modified
+      if (selectedRepair && selectedRepair._id === repairId) {
+        setSelectedRepair({ ...selectedRepair, status: newStatus as Repair['status'] });
+      }
+
+      setToast({
+        message: `Status updated to: ${newStatus}`,
+        type: 'success'
+      });
+
+      // Refresh the list to get latest data
+      await fetchRepairs();
+
+    } catch (err: any) {
+      console.error('Failed to update status:', err);
+      setToast({
+        message: err.response?.data?.error || 'Failed to update status. Please try again.',
+        type: 'error'
+      });
+    } finally {
+      setStatusChangeLoading(false);
+    }
+  };
 
   const getPriorityColor = (priority: Repair['priority']) => {
     switch (priority) {
@@ -204,7 +258,7 @@ const AdminRepairs: React.FC = () => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       setImageFiles((prev) => [...prev, ...filesArray]);
-      
+
       const newImageUrls = filesArray.map((file) => URL.createObjectURL(file));
       setImages((prev) => [...prev, ...newImageUrls]);
     }
@@ -218,10 +272,10 @@ const AdminRepairs: React.FC = () => {
   };
 
   // Form Submit Handler - Simplified
+
   const handleCreateRepair = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validation
+
     if (!device || !customer || !email || !phone || !issue) {
       setToast({ message: 'Please fill in all required fields', type: 'error' });
       return;
@@ -235,7 +289,6 @@ const AdminRepairs: React.FC = () => {
     setSubmitLoading(true);
 
     try {
-      // Simplified repair data - NO hardware or accessories
       const repairData = {
         customerName: customer.trim(),
         phoneNumber: phone.trim(),
@@ -249,39 +302,37 @@ const AdminRepairs: React.FC = () => {
           totalEstimate: Number(totalEstimate) || 0,
           amountPaid: Number(amountPaid) || 0,
         },
+        // ✅ FIX: Send only the URL strings, not the full objects
+        images: repairImages.map(img => img.url) // <- This sends just the URLs as strings
       };
 
       console.log('Sending repair data:', JSON.stringify(repairData, null, 2));
 
       const response = await repairsAPI.create(repairData);
       console.log('Repair saved successfully:', response);
-      
+
       const newRepair = response.repair || response;
-      
-      // Add the new repair to the list
+
       setRepairs([newRepair, ...repairs]);
-      
-      // Clear form and close modal
       handleCloseModal();
-      
-      // Refresh the list to get the latest data
       await fetchRepairs();
-      
+
       setToast({ message: 'Repair logged successfully! 🎉', type: 'success' });
     } catch (err: any) {
       console.error('Failed to create repair:', err);
       console.error('Error response:', err.response?.data);
-      
-      const errorMessage = err.response?.data?.error || 
-                          err.response?.data?.message || 
-                          err.message ||
-                          'Failed to create repair. Please try again.';
+
+      const errorMessage = err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to create repair. Please try again.';
       setToast({ message: errorMessage, type: 'error' });
     } finally {
       setSubmitLoading(false);
     }
   };
 
+  // Update handleCloseModal to clear images
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedRepair(null);
@@ -295,6 +346,8 @@ const AdminRepairs: React.FC = () => {
     images.forEach(img => URL.revokeObjectURL(img));
     setImages([]);
     setImageFiles([]);
+    setRepairImages([]); // ✅ Clear uploaded images
+    setUploadedImageUrls([]);
     setTotalEstimate(0);
     setAmountPaid(0);
     setBalanceDue(0);
@@ -308,9 +361,23 @@ const AdminRepairs: React.FC = () => {
 
   // Calculate summary stats
   const totalRepairs = repairs.length;
-  const pendingRepairs = repairs.filter(r => r.status?.toLowerCase() === 'pending' || r.status === 'Pending').length;
-  const inProgressRepairs = repairs.filter(r => r.status?.toLowerCase() === 'in-progress' || r.status === 'in-progress' || r.status === 'under-review').length;
-  const completedRepairs = repairs.filter(r => r.status?.toLowerCase() === 'resolved' || r.status === 'Resolved' || r.status === 'Collected').length;
+  const pendingRepairs = repairs.filter(r => r.status === 'Pending').length;
+  const diagnosingRepairs = repairs.filter(r => r.status === 'Diagnosing').length;
+  const repairingRepairs = repairs.filter(r => r.status === 'Repairing').length;
+  const readyRepairs = repairs.filter(r => r.status === 'Ready').length;
+  const collectedRepairs = repairs.filter(r => r.status === 'Collected').length;
+
+  // Format date for display
+  const formatDate = (date: string) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   if (loading) {
     return (
@@ -328,7 +395,7 @@ const AdminRepairs: React.FC = () => {
       <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
         <span className="material-symbols-outlined text-red-600 text-3xl">error</span>
         <p className="text-sm font-medium text-red-600 mt-2">{error}</p>
-        <button 
+        <button
           onClick={fetchRepairs}
           className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700"
         >
@@ -367,41 +434,48 @@ const AdminRepairs: React.FC = () => {
           New Repair
         </button>
       </div>
-      
+
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
         <div className="bg-white rounded-xl p-3 text-center border border-slate-200/80 shadow-sm">
           <p className="text-lg sm:text-xl font-bold text-blue-600">{totalRepairs}</p>
-          <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">Total Repairs</p>
+          <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">Total</p>
         </div>
         <div className="bg-white rounded-xl p-3 text-center border border-slate-200/80 shadow-sm">
-          <p className="text-lg sm:text-xl font-bold text-amber-600">{pendingRepairs}</p>
+          <p className="text-lg sm:text-xl font-bold text-red-600">{pendingRepairs}</p>
           <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">Pending</p>
         </div>
         <div className="bg-white rounded-xl p-3 text-center border border-slate-200/80 shadow-sm">
-          <p className="text-lg sm:text-xl font-bold text-blue-600">{inProgressRepairs}</p>
-          <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">In Progress</p>
+          <p className="text-lg sm:text-xl font-bold text-amber-600">{diagnosingRepairs}</p>
+          <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">Diagnosing</p>
         </div>
         <div className="bg-white rounded-xl p-3 text-center border border-slate-200/80 shadow-sm">
-          <p className="text-lg sm:text-xl font-bold text-emerald-600">{completedRepairs}</p>
-          <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">Completed</p>
+          <p className="text-lg sm:text-xl font-bold text-blue-600">{repairingRepairs}</p>
+          <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">Repairing</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 text-center border border-slate-200/80 shadow-sm">
+          <p className="text-lg sm:text-xl font-bold text-green-600">{readyRepairs}</p>
+          <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">Ready</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 text-center border border-slate-200/80 shadow-sm">
+          <p className="text-lg sm:text-xl font-bold text-gray-600">{collectedRepairs}</p>
+          <p className="text-[8px] sm:text-[10px] font-semibold text-slate-500">Collected</p>
         </div>
       </div>
 
       {/* Status Filters */}
       <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 scrollbar-hide border-b border-slate-200/60">
-        {['all', 'pending', 'in-progress', 'under-review', 'resolved', 'escalated'].map(
+        {['all', 'Pending', 'Diagnosing', 'Repairing', 'Ready', 'Collected'].map(
           (filter) => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold whitespace-nowrap transition-all ${
-                activeFilter === filter
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
-              }`}
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold whitespace-nowrap transition-all ${activeFilter === filter
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                }`}
             >
-              {filter.charAt(0).toUpperCase() + filter.slice(1).replace('-', ' ')}
+              {filter === 'all' ? 'All' : filter}
             </button>
           )
         )}
@@ -437,9 +511,9 @@ const AdminRepairs: React.FC = () => {
                     <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
                       {repair.deviceModel || repair.device || 'Unknown Device'}
                     </h3>
-                    <StatusBadge 
-                      status={mapStatus(repair.status)} 
-                      size="sm" 
+                    <StatusBadge
+                      status={repair.status || 'Pending'}
+                      size="sm"
                     />
                     {repair.ticketId && (
                       <span className="text-[10px] font-mono bg-slate-100 px-2 py-0.5 rounded-full text-slate-500">
@@ -463,6 +537,7 @@ const AdminRepairs: React.FC = () => {
                     <span className="hidden sm:inline">
                       Assigned: <span className="font-semibold text-slate-700">{repair.assignedTo || 'Unassigned'}</span>
                     </span>
+                    {/* In the repair card - update the image count display */}
                     {repair.images && repair.images.length > 0 && (
                       <>
                         <span className="hidden xs:inline">•</span>
@@ -499,7 +574,7 @@ const AdminRepairs: React.FC = () => {
         )}
       </div>
 
-      {/* Modal - New Repair Form (Simplified - NO Hardware/Accessories) */}
+      {/* Modal - Enhanced View Details with Status Change */}
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -507,62 +582,196 @@ const AdminRepairs: React.FC = () => {
         size="lg"
       >
         {selectedRepair ? (
-          // View Details Mode
-          <div className="space-y-3 sm:space-y-4">
-            <div className="grid grid-cols-2 gap-2 sm:gap-4 bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200/60">
-              <div>
-                <p className="text-[10px] sm:text-xs font-bold text-slate-500">Device</p>
-                <p className="text-xs sm:text-sm font-extrabold text-slate-900 mt-0.5">
+          // Enhanced View Details Mode with Status Change
+          <div className="space-y-4">
+            {/* Ticket ID & Status Header */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-mono bg-slate-100 px-3 py-1 rounded-full text-slate-700 font-bold">
+                  {selectedRepair.ticketId || 'No Ticket ID'}
+                </span>
+                <StatusBadge status={selectedRepair.status || 'Pending'} size="sm" />
+              </div>
+              <span className="text-xs text-slate-500">
+                Logged: {formatDate(selectedRepair.dateLogged)}
+              </span>
+            </div>
+
+            {/* Status Change Section */}
+            <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-2">Update Status</p>
+              <div className="flex flex-wrap gap-2">
+                {STATUS_OPTIONS.map((status) => (
+                  <button
+                    key={status.value}
+                    onClick={() => handleStatusChange(selectedRepair._id, status.value)}
+                    disabled={statusChangeLoading || selectedRepair.status === status.value}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${selectedRepair.status === status.value
+                      ? `${status.color} cursor-default opacity-70`
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-blue-300'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {status.label}
+                  </button>
+                ))}
+              </div>
+              {statusChangeLoading && (
+                <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  Updating status...
+                </p>
+              )}
+            </div>
+
+            {/* Device & Issue */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Device Model</p>
+                <p className="text-sm font-extrabold text-slate-900 mt-0.5">
                   {selectedRepair.deviceModel || selectedRepair.device || 'Unknown'}
                 </p>
               </div>
-              <div>
-                <p className="text-[10px] sm:text-xs font-bold text-slate-500">Status</p>
-                <div className="mt-0.5">
-                  <StatusBadge status={selectedRepair.status?.toLowerCase() || 'pending'} size="sm" />
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] sm:text-xs font-bold text-slate-500">Priority</p>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Priority</p>
                 <span
-                  className={`inline-block text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded border mt-0.5 ${getPriorityColor(
+                  className={`inline-block text-xs font-bold px-2 py-0.5 rounded border mt-0.5 ${getPriorityColor(
                     selectedRepair.priority || 'medium'
                   )}`}
                 >
                   {(selectedRepair.priority || 'medium').toUpperCase()}
                 </span>
               </div>
-              <div>
-                <p className="text-[10px] sm:text-xs font-bold text-slate-500">Assigned</p>
-                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
+            </div>
+
+            {/* Customer Information */}
+            <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-2">Customer Information</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                  <p className="text-[9px] font-semibold text-slate-400">Name</p>
+                  <p className="text-xs font-bold text-slate-800">
+                    {selectedRepair.customerName || selectedRepair.customer || 'Unknown'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-semibold text-slate-400">Email</p>
+                  <p className="text-xs font-bold text-slate-800 truncate">
+                    {selectedRepair.customerEmail || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-semibold text-slate-400">Phone</p>
+                  <p className="text-xs font-bold text-slate-800">
+                    {selectedRepair.phoneNumber || 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Issue Description */}
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Issue Description</p>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 text-sm text-slate-700">
+                {selectedRepair.issueDescription || selectedRepair.issue || 'No description provided'}
+              </div>
+            </div>
+
+            {/* Assignment */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assigned To</p>
+                <p className="text-sm font-bold text-slate-800 mt-0.5">
                   {selectedRepair.assignedTo || 'Unassigned'}
-                </p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-[10px] sm:text-xs font-bold text-slate-500">Customer</p>
-                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
-                  {selectedRepair.customerName || selectedRepair.customer || 'Unknown'}
-                </p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-[10px] sm:text-xs font-bold text-slate-500">Issue Description</p>
-                <p className="text-xs sm:text-sm text-slate-700 mt-0.5 bg-white p-2 rounded-lg border border-slate-200">
-                  {selectedRepair.issueDescription || selectedRepair.issue || 'No description'}
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 pt-2 sm:pt-3">
-              <button className="flex-1 bg-blue-600 text-white py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-xs">
-                Assign Technician
+            {/* Financial Details */}
+            {(selectedRepair.totalEstimate !== undefined || selectedRepair.amountPaid !== undefined) && (
+              <div className="bg-amber-50/50 p-3 rounded-xl border border-amber-100">
+                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">Financial Details</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center">
+                    <p className="text-[9px] font-semibold text-slate-400">Total Estimate</p>
+                    <p className="text-sm font-bold text-slate-900">₦{selectedRepair.totalEstimate?.toFixed(2) || '0.00'}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[9px] font-semibold text-slate-400">Amount Paid</p>
+                    <p className="text-sm font-bold text-emerald-600">₦{selectedRepair.amountPaid?.toFixed(2) || '0.00'}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[9px] font-semibold text-slate-400">Balance</p>
+                    <p className={`text-sm font-bold ${selectedRepair.balanceDue && selectedRepair.balanceDue > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                      ₦{selectedRepair.balanceDue?.toFixed(2) || '0.00'}
+                    </p>
+                  </div>
+                </div>
+                {selectedRepair.paymentStatus && (
+                  <div className="mt-2 flex justify-center">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getPaymentStatusColor(selectedRepair.paymentStatus)}`}>
+                      {selectedRepair.paymentStatus}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Images - Updated to handle both string and object formats */}
+            {selectedRepair.images && selectedRepair.images.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Device Photos</p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {selectedRepair.images.map((img, index) => {
+                    // Get the image URL whether it's a string or an object
+                    const imageUrl = typeof img === 'string' ? img : img.url;
+                    return (
+                      <a
+                        key={index}
+                        href={imageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 hover:opacity-90 transition-opacity"
+                      >
+                        <img
+                          src={imageUrl}
+                          alt={`Device photo ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error('Image failed to load:', imageUrl);
+                            // Show a fallback if image fails to load
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%23cccccc" stroke-width="2"%3E%3Crect x="3" y="3" width="18" height="18" rx="2"%3E%3C/rect%3E%3Ccircle cx="8.5" cy="8.5" r="1.5"%3E%3C/circle%3E%3Cpath d="M21 15l-5-5-5 5-4-4-3 3"%3E%3C/path%3E%3C/svg%3E';
+                          }}
+                        />
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-slate-200">
+              <button className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-xs">
+                <span className="flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-sm">person_add</span>
+                  Assign Technician
+                </span>
               </button>
-              <button className="flex-1 border border-slate-200 text-slate-700 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-100 transition-colors">
-                Update Status
+              <button className="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:bg-emerald-700 active:scale-95 transition-all shadow-xs">
+                <span className="flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-sm">check_circle</span>
+                  Mark as Ready
+                </span>
+              </button>
+              <button className="flex-1 border border-slate-200 text-slate-700 py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-100 transition-colors">
+                <span className="flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-sm">print</span>
+                  Print
+                </span>
               </button>
             </div>
           </div>
         ) : (
-          // Create New Repair Form - Simplified
+          // Create New Repair Form - Same as before
           <form onSubmit={handleCreateRepair} className="space-y-3 sm:space-y-4">
             {/* Device Model */}
             <div>
@@ -757,54 +966,23 @@ const AdminRepairs: React.FC = () => {
             </div>
 
             {/* Photo Intake Upload Section - OPTIONAL */}
+            {/* Photo Intake Upload Section - Using ImageUpload Component */}
             <div>
               <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
-                Device Condition Photos (Optional)
+                Device Condition Photos <span className="text-slate-400 font-normal">(Optional)</span>
               </label>
 
-              <label className="border-2 border-dashed border-slate-200 rounded-2xl p-4 sm:p-5 text-center hover:bg-slate-50 transition-colors cursor-pointer group flex flex-col items-center justify-center">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <span className="material-symbols-outlined text-slate-400 group-hover:text-blue-600 text-2xl sm:text-3xl mb-1 transition-colors">
-                  photo_camera
-                </span>
-                <p className="text-[10px] sm:text-xs font-bold text-slate-800">
-                  Tap to take photos or upload images <span className="text-slate-400 font-normal">(Optional)</span>
-                </p>
-                <p className="text-[9px] sm:text-[11px] text-slate-400 mt-0.5">
-                  Capture device condition, scratches, or damages
-                </p>
-              </label>
-
-              {images.length > 0 && (
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 sm:gap-2 mt-2 sm:mt-3">
-                  {images.map((imgUrl, idx) => (
-                    <div
-                      key={idx}
-                      className="relative group aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100"
-                    >
-                      <img
-                        src={imgUrl}
-                        alt={`Upload intake ${idx}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage(idx)}
-                        className="absolute top-0.5 right-0.5 bg-slate-900/80 hover:bg-red-600 text-white rounded-full p-0.5 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-[10px] sm:text-xs block">close</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <ImageUpload
+                onUploadComplete={(files) => {
+                  setRepairImages(files);
+                  // Update images state for preview
+                  const urls = files.map(f => f.url);
+                  setImages(urls);
+                }}
+                maxFiles={5}
+                uploadType="repair"
+                existingImages={repairImages}
+              />
             </div>
 
             <button

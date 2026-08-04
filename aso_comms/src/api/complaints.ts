@@ -6,7 +6,7 @@ export interface ComplaintData {
   customerName: string;
   customerPhone: string;
   subject: string;
-  category: 'Faulty Repair' | 'Delayed Timeline' | 'Billing Issue' | 'Poor Service' | 'Other';
+  category: string;
   description: string;
 }
 
@@ -22,9 +22,9 @@ export const complaintsAPI = {
     return response.data;
   },
 
-  // Get complaint form data (prefills)
-  getNewFormData: async (ticketId?: string) => {
-    const response = await api.get('/complaints/new', { params: { ticketId } });
+  // Get single complaint
+  getOne: async (id: string) => {
+    const response = await api.get(`/complaints/${id}`);
     return response.data;
   },
 
@@ -34,7 +34,7 @@ export const complaintsAPI = {
     return response.data;
   },
 
-  // Update complaint status
+  // Update complaint status with resolution notes
   updateStatus: async (id: string, data: ComplaintStatusUpdate) => {
     const response = await api.patch(`/complaints/${id}/status`, data);
     return response.data;

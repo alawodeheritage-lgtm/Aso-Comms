@@ -1,3 +1,4 @@
+// backend/routes/complaints.js
 const express = require('express');
 const router = express.Router();
 const Complaint = require('../models/complaint');
@@ -5,59 +6,35 @@ const Repair = require('../models/repair');
 const catchAsync = require('../utils/catchAsync');
 const { isLoggedIn, isStaff, validateComplaint } = require('../middleware');
 
-// GET /complaints - Hub Dashboard
+// GET /complaints - Get all complaints
 router.get('/', isLoggedIn, catchAsync(async (req, res) => {
+    console.log('📊 GET /complaints - Fetching all complaints');
+    console.log('👤 User:', req.user._id, req.user.role);
+
     const { status } = req.query;
     const isManagement = req.user.role === 'manager' || req.user.role === 'ceo' || req.user.isStaff;
 
-    // Base filter: Management sees all, customers ONLY see their own
     const baseFilter = isManagement ? {} : { submittedBy: req.user._id };
 
-    // Filter for list view
     const listQuery = { ...baseFilter };
     if (status) listQuery.status = status;
 
-    // Run list query (populating repair to get device-specific info)
-    const complaintsQuery = Complaint.find(listQuery)
-        .populate('submittedBy', 'username phoneNumber')
-        .populate('resolvedBy', 'username')
-        .populate('repair', 'deviceModel deviceBrand serialNumber issueDescription customerPhone phoneNumber')
+    const complaints = await Complaint.find(listQuery)
+        .populate('submittedBy', 'username email phoneNumber')
+        .populate('resolvedBy', 'username email')
+        .populate('repair', 'ticketId deviceModel status')
         .sort({ createdAt: -1 });
 
-    let complaints = [];
-    let metrics = { open: 0, underReview: 0, escalated: 0, resolved: 0 };
+    console.log(`📊 Found ${complaints.length} complaints`);
 
-    if (isManagement) {
-        // Run aggregation ONLY for management
-        const [fetchedComplaints, rawMetrics] = await Promise.all([
-            complaintsQuery,
-            Complaint.aggregate([
-                { $group: { _id: '$status', count: { $sum: 1 } } }
-            ])
-        ]);
-
-        complaints = fetchedComplaints;
-        rawMetrics.forEach(m => {
-            if (m._id === 'Open') metrics.open = m.count;
-            if (m._id === 'Under Review') metrics.underReview = m.count;
-            if (m._id === 'Escalated') metrics.escalated = m.count;
-            if (m._id === 'Resolved') metrics.resolved = m.count;
-        });
-    } else {
-        // Standard user fetch without heavy global aggregation
-        complaints = await complaintsQuery;
-    }
-
-    res.json('complaints/index', {
-        complaints,
-        currentFilter: status || 'All',
-        metrics,
-        isManagement
+    res.json({
+        complaints: complaints,
+        count: complaints.length,
+        isManagement: isManagement
     });
 }));
 
-// GET /complaints/new - Render Submit Form with automatic pre-fills
-// GET /complaints/new - Render Submit Form
+// GET /complaints/new - Get form data with prefills
 router.get('/new', isLoggedIn, catchAsync(async (req, res) => {
     let { ticketId } = req.query;
     let prefilledRepair = null;
@@ -66,28 +43,25 @@ router.get('/new', isLoggedIn, catchAsync(async (req, res) => {
 
     const userPhone = req.user.phoneNumber || req.user.phone;
 
-    // Fetch ALL repairs belonging to this user
     if (!isManagement) {
         userRepairs = await Repair.find({
             $or: [
                 { submittedBy: req.user._id },
                 { user: req.user._id },
-                { customer: req.user._id },
-                ...(userPhone ? [{ phoneNumber: userPhone }, { customerPhone: userPhone }, { phone: userPhone }] : [])
+                { owner: req.user._id },
+                ...(userPhone ? [{ phoneNumber: userPhone }, { customerPhone: userPhone }] : [])
             ]
         }).sort({ createdAt: -1 });
     }
 
-    // If a ticket ID was passed via query (?ticketId=ASO-1001)
     if (ticketId) {
         prefilledRepair = await Repair.findOne({ ticketId: ticketId.trim().toUpperCase() });
     } else if (userRepairs.length > 0) {
-        // Fallback to the latest repair if no ticketId query passed
         prefilledRepair = userRepairs[0];
         ticketId = prefilledRepair.ticketId;
     }
 
-    res.json('complaints/new', {
+    res.json({
         userRepairs,
         prefilledRepair,
         ticketId: ticketId || '',
@@ -97,38 +71,67 @@ router.get('/new', isLoggedIn, catchAsync(async (req, res) => {
 }));
 
 // POST /complaints - Create Complaint Ticket
+// backend/routes/complaints.js - Updated POST route
 router.post('/', isLoggedIn, validateComplaint, catchAsync(async (req, res) => {
-    const { ticketId, customerName, customerPhone, phoneNumber, subject, category, description } = req.body;
+    console.log('📤 POST /complaints - Creating new complaint');
+    console.log('📤 Request body:', req.body);
+    console.log('👤 User:', req.user._id);
+
+    const { ticketId, customerName, customerPhone, subject, category, description, images } = req.body;
 
     const repair = await Repair.findOne({ ticketId: ticketId.toUpperCase() });
+
+    let customerEmail = req.user.email;
+    if (!customerEmail && repair) {
+        customerEmail = repair.customerEmail;
+    }
 
     const newComplaint = new Complaint({
         ticketId: ticketId.toUpperCase(),
         repair: repair ? repair._id : null,
         submittedBy: req.user._id,
-        customerName,
-        customerPhone: customerPhone || phoneNumber, // Accepts either field name
+        customerName: customerName || req.user.username || 'Customer',
+        customerPhone: customerPhone || req.user.phoneNumber || 'N/A',
+        customerEmail: customerEmail || '',
         subject,
         category,
-        description
+        description,
+        status: 'Open',
+        severity: 'medium',
+        images: images || [], // ✅ Add images
+        statusHistory: [{
+            status: 'Open',
+            changedBy: req.user._id,
+            notes: 'Complaint created',
+            changedAt: new Date()
+        }]
     });
 
     await newComplaint.save();
-    req.flash('success', `Complaint for Ticket #${newComplaint.ticketId} submitted successfully.`);
-    res.redirect('/complaints');
+    
+    console.log('✅ Complaint created:', newComplaint._id);
+    
+    res.status(201).json({ 
+        success: true,
+        message: `Complaint for Ticket #${newComplaint.ticketId} submitted successfully.`,
+        complaint: newComplaint
+    });
 }));
 
-// PATCH /complaints/:id/status - Update Status/Resolution (Management Only)
+// ✅ FIXED: PATCH /complaints/:id/status - Update Status
 router.patch('/:id/status', isLoggedIn, isStaff, catchAsync(async (req, res) => {
     const { id } = req.params;
     const { status, resolutionNotes } = req.body;
 
+    console.log(`📤 PATCH /complaints/${id}/status - Updating status to:`, status);
+
+    // ✅ Find the complaint first
     const complaint = await Complaint.findById(id);
     if (!complaint) {
-        req.flash('error', 'Complaint record not found.');
-        return res.redirect('/complaints');
+        return res.status(404).json({ error: 'Complaint record not found.' });
     }
 
+    // ✅ Update only the fields that are changing
     complaint.status = status;
     if (resolutionNotes !== undefined) {
         complaint.resolutionNotes = resolutionNotes;
@@ -139,9 +142,142 @@ router.patch('/:id/status', isLoggedIn, isStaff, catchAsync(async (req, res) => 
         complaint.resolvedAt = new Date();
     }
 
+    // ✅ Save the complaint - don't change other fields
     await complaint.save();
-    req.flash('success', `Complaint status updated to: ${status}`);
-    res.redirect('/complaints');
+
+    console.log('✅ Complaint status updated');
+
+    // ✅ Return the updated complaint
+    const updatedComplaint = await Complaint.findById(id)
+        .populate('submittedBy', 'email role')
+        .populate('resolvedBy', 'email')
+        .populate('repair', 'ticketId deviceModel status');
+
+    res.json({
+        success: true,
+        message: `Complaint status updated to: ${status}`,
+        complaint: updatedComplaint
+    });
+}));
+
+// GET /complaints/:id - Get single complaint
+router.get('/:id', isLoggedIn, catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const isManagement = req.user.role === 'manager' || req.user.role === 'ceo' || req.user.isStaff;
+
+    const complaint = await Complaint.findById(id)
+        .populate('submittedBy', 'email role')
+        .populate('resolvedBy', 'email')
+        .populate('repair', 'ticketId deviceModel status');
+
+    if (!complaint) {
+        return res.status(404).json({ error: 'Complaint not found' });
+    }
+
+    if (!isManagement && complaint.submittedBy._id.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ error: 'You do not have permission to view this complaint' });
+    }
+
+    res.json({ complaint });
+}));
+router.patch('/:id/status', isLoggedIn, isStaff, catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const { status, resolutionNotes } = req.body;
+
+    console.log(`📤 PATCH /complaints/${id}/status - Updating status to:`, status);
+    console.log('📝 Resolution Notes:', resolutionNotes);
+
+    const complaint = await Complaint.findById(id);
+    if (!complaint) {
+        return res.status(404).json({ error: 'Complaint record not found.' });
+    }
+
+    // Add to status history
+    complaint.statusHistory.push({
+        status: status,
+        changedBy: req.user._id,
+        notes: resolutionNotes || complaint.resolutionNotes,
+        changedAt: new Date()
+    });
+
+    // Update status
+    complaint.status = status;
+
+    // Update resolution notes if provided
+    if (resolutionNotes !== undefined && resolutionNotes.trim() !== '') {
+        complaint.resolutionNotes = resolutionNotes.trim();
+    }
+
+    // If resolving, set resolvedBy and resolvedAt
+    if (status === 'Resolved') {
+        complaint.resolvedBy = req.user._id;
+        complaint.resolvedAt = new Date();
+
+        // If no resolution notes were provided, set a default
+        if (!complaint.resolutionNotes || complaint.resolutionNotes === '') {
+            complaint.resolutionNotes = `Resolved by ${req.user.username} on ${new Date().toLocaleString()}`;
+        }
+    }
+
+    await complaint.save();
+
+    // Populate for response
+    await complaint.populate('resolvedBy', 'username email');
+    await complaint.populate('submittedBy', 'username email');
+
+    console.log('✅ Complaint status updated:', complaint.status);
+
+    res.json({
+        success: true,
+        message: `Complaint status updated to: ${status}`,
+        complaint: complaint
+    });
+}));
+
+// POST /complaints - Create Complaint Ticket
+router.post('/', isLoggedIn, validateComplaint, catchAsync(async (req, res) => {
+    console.log('📤 POST /complaints - Creating new complaint');
+    console.log('📤 Request body:', req.body);
+    console.log('👤 User:', req.user._id);
+
+    const { ticketId, customerName, customerPhone, subject, category, description } = req.body;
+
+    const repair = await Repair.findOne({ ticketId: ticketId.toUpperCase() });
+
+    let customerEmail = req.user.email;
+    if (!customerEmail && repair) {
+        customerEmail = repair.customerEmail;
+    }
+
+    const newComplaint = new Complaint({
+        ticketId: ticketId.toUpperCase(),
+        repair: repair ? repair._id : null,
+        submittedBy: req.user._id,
+        customerName: customerName || req.user.username || 'Customer',
+        customerPhone: customerPhone || req.user.phoneNumber || 'N/A',
+        customerEmail: customerEmail || '',
+        subject,
+        category,
+        description,
+        status: 'Open',
+        severity: 'medium',
+        statusHistory: [{
+            status: 'Open',
+            changedBy: req.user._id,
+            notes: 'Complaint created',
+            changedAt: new Date()
+        }]
+    });
+
+    await newComplaint.save();
+
+    console.log('✅ Complaint created:', newComplaint._id);
+
+    res.status(201).json({
+        success: true,
+        message: `Complaint for Ticket #${newComplaint.ticketId} submitted successfully.`,
+        complaint: newComplaint
+    });
 }));
 
 module.exports = router;

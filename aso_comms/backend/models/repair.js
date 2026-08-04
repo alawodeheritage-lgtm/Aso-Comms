@@ -1,9 +1,21 @@
-// models/repair.js
-
+// backend/models/repair.js
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const RepairSchema = new Schema({
+  // Primary reference to user
+  user: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    index: true // ✅ Add index here instead of separate schema.index()
+  },
+  // DEPRECATED: Use 'user' instead. Keeping for backward compatibility
+  owner: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    index: true
+  },
+  // Read-only snapshots
   customerName: {
     type: String,
     required: true
@@ -44,33 +56,27 @@ const RepairSchema = new Schema({
   },
   ticketId: {
     type: String,
-    unique: true,
-    index: true,
+    unique: true, // ✅ Keep unique here
+    index: true, // ✅ This creates the index
     sparse: true
-  },
-  owner: {
-    type: Schema.Types.ObjectId,
-    ref: 'User'
   },
   images: {
     type: [String],
     default: []
   },
-
-  // Financials
   financials: {
-    totalEstimate: { 
-      type: Number, 
-      required: true, 
-      default: 0 
+    totalEstimate: {
+      type: Number,
+      required: true,
+      default: 0
     },
-    amountPaid: { 
-      type: Number, 
-      default: 0 
+    amountPaid: {
+      type: Number,
+      default: 0
     },
-    balanceDue: { 
-      type: Number, 
-      default: 0 
+    balanceDue: {
+      type: Number,
+      default: 0
     },
     paymentStatus: {
       type: String,
@@ -78,72 +84,81 @@ const RepairSchema = new Schema({
       default: 'Unpaid'
     }
   },
-  
+  images: {
+        type: [{
+            url: String,
+            publicId: String,
+            originalName: String,
+            uploadedAt: {
+                type: Date,
+                default: Date.now
+            }
+        }],
+        default: []
+    },
   dateLogged: {
     type: Date,
     default: Date.now
   },
-  
   complaints: [{
     type: Schema.Types.ObjectId,
     ref: 'Complaint'
   }]
-}, { 
-  timestamps: true 
+}, {
+  timestamps: true
 });
 
-// Pre-Save Hook for financial calculation & Ticket ID generation
-RepairSchema.pre('save', async function (next) {
-  console.log('🔧 Pre-save hook triggered for repair:', this.customerName);
-  
-  // 1. Calculate Financial States
-  if (this.financials) {
-    // Ensure amountPaid doesn't exceed totalEstimate
-    if (this.financials.amountPaid > this.financials.totalEstimate) {
-      return next(new Error('Amount paid cannot be greater than the total estimated cost!'));
-    }
-    
-    // Calculate balance due
-    this.financials.balanceDue = this.financials.totalEstimate - this.financials.amountPaid;
-    
-    // Determine payment status
-    if (this.financials.amountPaid === 0) {
-      this.financials.paymentStatus = 'Unpaid';
-    } else if (this.financials.balanceDue > 0) {
-      this.financials.paymentStatus = 'Partial / Deposit Logged';
-    } else {
-      this.financials.paymentStatus = 'Paid in Full';
-    }
-    
-    console.log('💰 Financials calculated:', {
-      totalEstimate: this.financials.totalEstimate,
-      amountPaid: this.financials.amountPaid,
-      balanceDue: this.financials.balanceDue,
-      paymentStatus: this.financials.paymentStatus
-    });
-  }
+// ============================================
+// ✅ REMOVED: Duplicate index definitions
+// These were causing the warning
+// ============================================
+// RepairSchema.index({ ticketId: 1 }); // ❌ REMOVED - duplicate
+// RepairSchema.index({ user: 1 }); // ❌ REMOVED - use index: true in schema
+// RepairSchema.index({ owner: 1 }); // ❌ REMOVED - use index: true in schema
 
-  // 2. Generate Ticket ID if new
-  if (this.isNew && !this.ticketId) {
-    const year = new Date().getFullYear();
-    let isUnique = false;
-    let generatedId = '';
+// ============================================
+// Pre-save hook
+// ============================================
+RepairSchema.pre('save', async function () {
+  try {
+    console.log('🔧 Pre-save hook triggered for repair:', this.customerName);
 
-    while (!isUnique) {
-      const randomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
-      generatedId = `ASO-${year}-${randomCode}`;
-
-      const existingTicket = await mongoose.model('Repair').findOne({ ticketId: generatedId });
-      if (!existingTicket) {
-        isUnique = true;
+    // 1. Calculate Financial States
+    if (this.financials) {
+      if (this.financials.amountPaid > this.financials.totalEstimate) {
+        throw new Error('Amount paid cannot be greater than the total estimated cost!');
       }
+
+      this.financials.balanceDue = this.financials.totalEstimate - this.financials.amountPaid;
+
+      if (this.financials.amountPaid === 0) {
+        this.financials.paymentStatus = 'Unpaid';
+      } else if (this.financials.balanceDue > 0) {
+        this.financials.paymentStatus = 'Partial / Deposit Logged';
+      } else {
+        this.financials.paymentStatus = 'Paid in Full';
+      }
+
+      console.log('💰 Financials:', {
+        totalEstimate: this.financials.totalEstimate,
+        amountPaid: this.financials.amountPaid,
+        balanceDue: this.financials.balanceDue,
+        paymentStatus: this.financials.paymentStatus
+      });
     }
 
-    this.ticketId = generatedId;
-    console.log('🎫 Generated Ticket ID:', this.ticketId);
-  }
+    // 2. Generate Ticket ID if new
+    if (this.isNew && !this.ticketId) {
+      const year = new Date().getFullYear();
+      const randomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
+      this.ticketId = `ASO-${year}-${randomCode}`;
+      console.log('🎫 Generated Ticket ID:', this.ticketId);
+    }
 
-  next();
+  } catch (error) {
+    console.error('❌ Error in pre-save hook:', error);
+    throw error;
+  }
 });
 
 module.exports = mongoose.model('Repair', RepairSchema);

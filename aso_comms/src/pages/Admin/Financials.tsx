@@ -1,5 +1,12 @@
-import React, { useState, useMemo } from 'react';
+// src/pages/Admin/Financials.tsx
+import React, { useState, useEffect, useMemo } from 'react';
 import MetricCard from '../../components/MetricCard';
+import Modal from '../../components/Modal';
+import Toast from '../../components/Toast';
+import StatusBadge from '../../components/StatusBadge';
+import { transactionsAPI } from '../../api/transactions';
+import { expensesAPI } from '../../api/expenses';
+import { repairsAPI } from '../../api/repairs';
 
 interface Transaction {
   id: string;
@@ -8,21 +15,166 @@ interface Transaction {
   date: string;
   type: 'income' | 'expense';
   category: string;
+  _id?: string;
+  repairId?: string;
+  notes?: string;
+  loggedBy?: {
+    username: string;
+    email: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const Financials: React.FC = () => {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'ytd'>('30d');
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions'>('overview');
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Toast state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('All Types');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
 
+  // Format currency - uses ₦ with proper commas
+  const formatCurrency = (amount: number): string => {
+    return `₦${amount.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    })}`;
+  };
+
+  // Format currency with sign
+  const formatCurrencyWithSign = (amount: number, type: 'income' | 'expense'): string => {
+    const formatted = formatCurrency(Math.abs(amount));
+    return type === 'income' ? `+${formatted}` : `-${formatted}`;
+  };
+
+  // Fetch all financial data
+  const fetchFinancialData = async () => {
+    try {
+      setLoading(true);
+      console.log('🔄 Fetching financial data...');
+
+      const [transactionsRes, expensesRes, repairsRes] = await Promise.all([
+        transactionsAPI.getAll(),
+        expensesAPI.getAll(),
+        repairsAPI.getAll()
+      ]);
+
+      console.log('📊 Transactions:', transactionsRes);
+      console.log('📊 Expenses:', expensesRes);
+      console.log('📊 Repairs:', repairsRes);
+
+      let transactionData: Transaction[] = [];
+
+      if (transactionsRes.transactions) {
+        transactionData = transactionsRes.transactions.map((t: any) => ({
+          id: t._id || t.id,
+          description: t.description || 'Transaction',
+          amount: formatCurrencyWithSign(t.amount, t.type || 'expense'),
+          date: new Date(t.date || t.createdAt).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+          type: t.type || 'expense',
+          category: t.category || 'Other',
+          _id: t._id,
+          repairId: t.repairId,
+          notes: t.notes || '',
+          loggedBy: t.loggedBy,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt
+        }));
+      }
+
+      if (expensesRes.expenses) {
+        const expenseTransactions = expensesRes.expenses.map((e: any) => ({
+          id: e._id || e.id,
+          description: e.description || 'Expense',
+          amount: formatCurrencyWithSign(e.amount, 'expense'),
+          date: new Date(e.dateLogged || e.createdAt).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+          type: 'expense' as const,
+          category: e.category || 'Other',
+          _id: e._id,
+          notes: e.notes || '',
+          loggedBy: e.loggedBy,
+          createdAt: e.createdAt,
+          updatedAt: e.updatedAt
+        }));
+        transactionData = [...transactionData, ...expenseTransactions];
+      }
+
+      if (repairsRes.repairs) {
+        const repairTransactions = repairsRes.repairs
+          .filter((r: any) => r.financials?.amountPaid > 0)
+          .map((r: any) => ({
+            id: r._id || r.id,
+            description: `${r.deviceModel || 'Device'} Repair - ${r.customerName || 'Customer'}`,
+            amount: formatCurrencyWithSign(r.financials?.amountPaid || 0, 'income'),
+            date: new Date(r.dateLogged || r.createdAt).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            }),
+            type: 'income' as const,
+            category: 'Repairs',
+            _id: r._id,
+            repairId: r._id,
+            notes: r.issueDescription || '',
+            loggedBy: r.owner,
+            createdAt: r.createdAt,
+            updatedAt: r.updatedAt
+          }));
+        transactionData = [...transactionData, ...repairTransactions];
+      }
+
+      transactionData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      console.log(`📊 Total transactions: ${transactionData.length}`);
+      setTransactions(transactionData);
+    } catch (err: any) {
+      console.error('❌ Failed to fetch financial data:', err);
+      setToast({
+        message: err.response?.data?.error || 'Failed to load financial data. Please refresh.',
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFinancialData();
+  }, []);
+
+  // Calculate totals from actual data
+  const totalRevenue = transactions
+    .filter((t) => t.type === 'income')
+    .reduce((sum, t) => sum + parseFloat(t.amount.replace(/[₦,+-]/g, '')), 0);
+
+  const totalExpenses = transactions
+    .filter((t) => t.type === 'expense')
+    .reduce((sum, t) => sum + parseFloat(t.amount.replace(/[₦,+-]/g, '')), 0);
+
+  const netProfit = totalRevenue - totalExpenses;
+
+  // Metrics with real data - using proper currency format
   const metrics = [
     {
       label: 'Total Revenue',
-      value: '₦8.4M',
+      value: formatCurrency(totalRevenue),
       icon: 'trending_up',
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50',
@@ -30,7 +182,7 @@ const Financials: React.FC = () => {
     },
     {
       label: 'Total Expenses',
-      value: '₦2.1M',
+      value: formatCurrency(totalExpenses),
       icon: 'payments',
       color: 'text-red-600',
       bgColor: 'bg-red-50',
@@ -38,27 +190,18 @@ const Financials: React.FC = () => {
     },
     {
       label: 'Net Profit',
-      value: '₦6.3M',
+      value: formatCurrency(netProfit),
       icon: 'account_balance',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
+      color: netProfit >= 0 ? 'text-emerald-600' : 'text-red-600',
+      bgColor: netProfit >= 0 ? 'bg-emerald-50' : 'bg-red-50'
     },
     {
-      label: 'ARPU',
-      value: '₦12,400',
-      icon: 'person',
+      label: 'Total Transactions',
+      value: transactions.length.toString(),
+      icon: 'receipt_long',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
     }
-  ];
-
-  const recentTransactions: Transaction[] = [
-    { id: '1', description: 'iPhone 14 Pro Repair', amount: '+₦45,000', date: 'Today', type: 'income', category: 'Repairs' },
-    { id: '2', description: 'Parts Purchase - Samsung S22', amount: '-₦18,000', date: 'Yesterday', type: 'expense', category: 'Parts' },
-    { id: '3', description: 'MacBook Air Battery Replacement', amount: '+₦32,000', date: 'Dec 12, 2023', type: 'income', category: 'Repairs' },
-    { id: '4', description: 'Shop Rent - December', amount: '-₦150,000', date: 'Dec 10, 2023', type: 'expense', category: 'Operations' },
-    { id: '5', description: 'iPad Screen Replacement', amount: '+₦28,000', date: 'Dec 8, 2023', type: 'income', category: 'Repairs' },
-    { id: '6', description: 'Marketing Ads - Google', amount: '-₦45,000', date: 'Dec 5, 2023', type: 'expense', category: 'Marketing' }
   ];
 
   const getTimeRangeLabel = (range: string) => {
@@ -74,60 +217,96 @@ const Financials: React.FC = () => {
     }
   };
 
-  const totalRevenue = recentTransactions
-    .filter((t) => t.type === 'income')
-    .reduce((sum, t) => sum + parseInt(t.amount.replace(/[₦,+-]/g, '')), 0);
-
-  const totalExpenses = recentTransactions
-    .filter((t) => t.type === 'expense')
-    .reduce((sum, t) => sum + parseInt(t.amount.replace(/[₦,+-]/g, '')), 0);
-
-  const netProfit = totalRevenue - totalExpenses;
+  // Get unique categories for filter
+  const categoryOptions = ['All Categories', ...new Set(transactions.map(t => t.category))];
 
   // Search & Filter Logic
   const filteredTransactions = useMemo(() => {
-    return recentTransactions.filter((transaction) => {
-      const matchesSearch = transaction.description
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+    let filtered = transactions;
 
-      const matchesType =
-        selectedType === 'All Types' ||
-        transaction.type.toLowerCase() === selectedType.toLowerCase();
+    if (searchQuery) {
+      filtered = filtered.filter((t) =>
+        t.description.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
 
-      const matchesCategory =
-        selectedCategory === 'All Categories' ||
-        transaction.category.toLowerCase() === selectedCategory.toLowerCase();
+    if (selectedType !== 'All Types') {
+      filtered = filtered.filter((t) => t.type === selectedType.toLowerCase());
+    }
 
-      return matchesSearch && matchesType && matchesCategory;
+    if (selectedCategory !== 'All Categories') {
+      filtered = filtered.filter((t) => t.category === selectedCategory);
+    }
+
+    return filtered;
+  }, [searchQuery, selectedType, selectedCategory, transactions]);
+
+  // Format date for modal
+  const formatDateFull = (date: string) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
-  }, [searchQuery, selectedType, selectedCategory, recentTransactions]);
+  };
+
+  const handleTransactionClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsModalOpen(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+          <p className="mt-3 text-base font-medium text-slate-500">Loading financial data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
             Financial Overview
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            High-level expense and revenue oversight
+          <p className="text-sm sm:text-base text-slate-500 mt-0.5">
+            High-level expense and revenue oversight from all transactions
           </p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-500/20 w-full sm:w-auto">
-          <span className="material-symbols-outlined text-lg">file_download</span>
-          Export Report
+        <button
+          onClick={fetchFinancialData}
+          className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-500/20 w-full sm:w-auto"
+        >
+          <span className="material-symbols-outlined text-lg">refresh</span>
+          Refresh Data
         </button>
       </div>
 
       {/* Time Range Selector */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide border-b border-slate-200/60">
+      <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 scrollbar-hide border-b border-slate-200/60">
         {(['7d', '30d', 'ytd'] as const).map((range) => (
           <button
             key={range}
             onClick={() => setTimeRange(range)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${timeRange === range
+            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base font-bold whitespace-nowrap transition-all ${timeRange === range
                 ? 'bg-blue-600 text-white shadow-xs'
                 : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
               }`}
@@ -138,41 +317,41 @@ const Financials: React.FC = () => {
       </div>
 
       {/* Quick Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        <div className="bg-white rounded-2xl p-4 shadow-2xs border border-slate-200/80 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 sm:mb-6">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-2xs border border-slate-200/80 text-center">
+          <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400">
             Revenue
           </p>
-          <p className="text-xl font-extrabold text-emerald-600 mt-0.5">
-            ₦{(totalRevenue / 1000).toFixed(1)}K
+          <p className="text-lg sm:text-2xl font-extrabold text-emerald-600 mt-1">
+            {formatCurrency(totalRevenue)}
           </p>
         </div>
-        <div className="bg-white rounded-2xl p-4 shadow-2xs border border-slate-200/80 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-2xs border border-slate-200/80 text-center">
+          <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400">
             Expenses
           </p>
-          <p className="text-xl font-extrabold text-red-600 mt-0.5">
-            ₦{(totalExpenses / 1000).toFixed(1)}K
+          <p className="text-lg sm:text-2xl font-extrabold text-red-600 mt-1">
+            {formatCurrency(totalExpenses)}
           </p>
         </div>
-        <div className="bg-white rounded-2xl p-4 shadow-2xs border border-slate-200/80 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-2xs border border-slate-200/80 text-center">
+          <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400">
             Profit
           </p>
           <p
-            className={`text-xl font-extrabold mt-0.5 ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'
+            className={`text-lg sm:text-2xl font-extrabold mt-1 ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'
               }`}
           >
-            ₦{(netProfit / 1000).toFixed(1)}K
+            {formatCurrency(netProfit)}
           </p>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-slate-200/80 mb-6 gap-6">
+      <div className="flex border-b border-slate-200/80 mb-4 sm:mb-6 gap-4 sm:gap-6 overflow-x-auto">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`pb-3 text-sm font-bold transition-all relative ${activeTab === 'overview'
+          className={`pb-2 sm:pb-3 text-sm sm:text-base font-bold transition-all relative whitespace-nowrap ${activeTab === 'overview'
               ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-slate-500 hover:text-slate-800'
             }`}
@@ -181,86 +360,94 @@ const Financials: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('transactions')}
-          className={`pb-3 text-sm font-bold transition-all relative ${activeTab === 'transactions'
+          className={`pb-2 sm:pb-3 text-sm sm:text-base font-bold transition-all relative whitespace-nowrap ${activeTab === 'transactions'
               ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-slate-500 hover:text-slate-800'
             }`}
         >
-          Transactions
+          Transactions ({transactions.length})
         </button>
       </div>
 
       {/* Overview Tab */}
       {activeTab === 'overview' && (
         <>
-          {/* Top Metrics Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
             {metrics.map((metric, index) => (
               <MetricCard key={index} {...metric} />
             ))}
           </div>
 
-          {/* Revenue vs Expenses Chart Placeholder */}
-          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-2xs border border-slate-200/80 mb-6">
-            <div className="flex items-center justify-between mb-6">
+          {/* Revenue vs Expenses Chart */}
+          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-2xs border border-slate-200/80 mb-4 sm:mb-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                   Revenue vs Expenses
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
                   Visual comparative performance breakdown
                 </p>
               </div>
-              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+              <span className="text-xs sm:text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">
                 {getTimeRangeLabel(timeRange)}
               </span>
             </div>
 
-            <div className="h-44 sm:h-56 flex items-end gap-1.5 sm:gap-3">
-              {[75, 55, 85, 65, 90, 70, 95, 60, 80, 75, 85, 70, 90, 80].map(
-                (height, index) => (
-                  <div key={index} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+            <div className="h-44 sm:h-64 flex items-end gap-1 sm:gap-1.5">
+              {transactions.slice(0, 14).map((t, index) => {
+                const amount = parseFloat(t.amount.replace(/[₦,+-]/g, ''));
+                const maxAmount = Math.max(
+                  ...transactions.slice(0, 14).map(t2 => parseFloat(t2.amount.replace(/[₦,+-]/g, ''))),
+                  1
+                );
+                const height = (amount / maxAmount) * 100;
+                const isIncome = t.type === 'income';
+
+                return (
+                  <div key={index} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
                     <div
-                      className="w-full bg-blue-600/80 hover:bg-blue-600 rounded-t-md transition-all cursor-pointer"
-                      style={{ height: `${height * 0.8}%`, minHeight: '8px' }}
+                      className={`w-full rounded-t-md transition-all cursor-pointer ${isIncome ? 'bg-emerald-500/80 hover:bg-emerald-500' : 'bg-red-500/80 hover:bg-red-500'
+                        }`}
+                      style={{ height: `${Math.max(height * 0.8, 4)}%`, minHeight: '4px' }}
+                      title={`${t.description}: ${t.amount}`}
                     />
                   </div>
-                )
-              )}
+                );
+              })}
             </div>
-            <div className="flex justify-between mt-4 pt-2 border-t border-slate-100 text-[10px] sm:text-xs font-bold text-slate-400">
-              <span>Week 1</span>
-              <span>Week 2</span>
-              <span>Week 3</span>
-              <span>Week 4</span>
+            <div className="flex justify-between mt-3 sm:mt-4 pt-2 border-t border-slate-100 text-[10px] sm:text-xs font-bold text-slate-400">
+              <span>Recent</span>
+              <span>Transactions</span>
             </div>
           </div>
 
           {/* Recent Transactions Preview */}
           <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-2xs border border-slate-200/80">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+            <div className="flex items-center justify-between mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-slate-100">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                 Recent Transactions
               </h3>
               <button
                 onClick={() => setActiveTab('transactions')}
-                className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 transition-colors"
+                className="text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 transition-colors"
               >
                 View All
                 <span className="material-symbols-outlined text-sm">chevron_right</span>
               </button>
             </div>
-            <div className="space-y-2.5">
-              {recentTransactions.slice(0, 4).map((transaction) => (
+            <div className="space-y-2.5 sm:space-y-3">
+              {transactions.slice(0, 4).map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200/60 hover:bg-slate-100/70 transition-colors gap-3"
+                  onClick={() => handleTransactionClick(transaction)}
+                  className="flex items-center justify-between p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-200/60 hover:bg-slate-100/70 hover:border-blue-300 transition-all cursor-pointer gap-2 sm:gap-3"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                    <p className="text-sm sm:text-base font-bold text-slate-900 truncate">
                       {transaction.description}
                     </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+                    <p className="text-xs sm:text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
                       <span>{transaction.date}</span>
                       <span>•</span>
                       <span className="font-semibold text-slate-700">
@@ -269,7 +456,7 @@ const Financials: React.FC = () => {
                     </p>
                   </div>
                   <p
-                    className={`font-extrabold text-xs sm:text-sm flex-shrink-0 ${transaction.type === 'income'
+                    className={`font-extrabold text-sm sm:text-base flex-shrink-0 ${transaction.type === 'income'
                         ? 'text-emerald-600'
                         : 'text-red-600'
                       }`}
@@ -286,14 +473,14 @@ const Financials: React.FC = () => {
       {/* Transactions Tab */}
       {activeTab === 'transactions' && (
         <div className="bg-white rounded-2xl shadow-2xs border border-slate-200/80 overflow-hidden">
-          {/* Filters Bar */}
-          <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-3">
+          {/* Filters Bar - Mobile Responsive */}
+          <div className="p-3 sm:p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-2 sm:gap-3">
             <div className="flex-1 relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-lg">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-base sm:text-lg">
                 search
               </span>
               <input
-                className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none transition-all text-sm text-slate-800 placeholder-slate-400"
+                className="w-full h-10 sm:h-12 pl-9 sm:pl-11 pr-3 sm:pr-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none transition-all text-sm sm:text-base text-slate-800 placeholder-slate-400"
                 placeholder="Search transactions..."
                 type="text"
                 value={searchQuery}
@@ -304,7 +491,7 @@ const Financials: React.FC = () => {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none transition-all text-xs font-bold text-slate-700 flex-1 sm:flex-none"
+                className="h-10 sm:h-12 px-3 sm:px-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none transition-all text-sm sm:text-base font-bold text-slate-700 flex-1"
               >
                 <option>All Types</option>
                 <option>Income</option>
@@ -313,95 +500,225 @@ const Financials: React.FC = () => {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none transition-all text-xs font-bold text-slate-700 flex-1 sm:flex-none"
+                className="h-10 sm:h-12 px-3 sm:px-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none transition-all text-sm sm:text-base font-bold text-slate-700 flex-1"
               >
-                <option>All Categories</option>
-                <option>Repairs</option>
-                <option>Parts</option>
-                <option>Operations</option>
-                <option>Marketing</option>
+                {categoryOptions.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
               </select>
             </div>
           </div>
 
           {/* Transaction List */}
           <div className="divide-y divide-slate-100">
-            {filteredTransactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="p-4 hover:bg-slate-50/80 transition-colors"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={`w-2 h-2 rounded-full flex-shrink-0 ${transaction.type === 'income'
-                            ? 'bg-emerald-500'
-                            : 'bg-red-500'
-                          }`}
-                      ></span>
-                      <p className="text-sm font-bold text-slate-900 truncate">
-                        {transaction.description}
-                      </p>
-                      <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
-                        {transaction.category}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">{transaction.date}</p>
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
-                    <p
-                      className={`font-extrabold text-sm sm:text-base ${transaction.type === 'income'
-                          ? 'text-emerald-600'
-                          : 'text-red-600'
-                        }`}
-                    >
-                      {transaction.amount}
-                    </p>
-                    <button className="text-slate-400 hover:text-slate-700 transition-colors p-1">
-                      <span className="material-symbols-outlined text-lg">more_vert</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {filteredTransactions.length === 0 && (
-              <div className="p-8 text-center">
-                <span className="material-symbols-outlined text-3xl text-slate-400 mb-1">
+            {filteredTransactions.length === 0 ? (
+              <div className="p-6 sm:p-8 text-center">
+                <span className="material-symbols-outlined text-3xl sm:text-4xl text-slate-400 mb-2">
                   receipt_long
                 </span>
-                <p className="text-sm font-bold text-slate-700">No transactions found</p>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-sm sm:text-base font-bold text-slate-700">No transactions found</p>
+                <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
                   Try adjusting your search query or filters.
                 </p>
               </div>
+            ) : (
+              filteredTransactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  onClick={() => handleTransactionClick(transaction)}
+                  className="p-3 sm:p-4 hover:bg-slate-50/80 hover:border-l-4 hover:border-l-blue-500 transition-all cursor-pointer"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                        <span
+                          className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0 ${transaction.type === 'income'
+                              ? 'bg-emerald-500'
+                              : 'bg-red-500'
+                            }`}
+                        ></span>
+                        <p className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                          {transaction.description}
+                        </p>
+                        <span className="text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 px-2 sm:px-3 py-0.5 rounded-md border border-slate-200/60">
+                          {transaction.category}
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-500 mt-1">{transaction.date}</p>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 pt-1 sm:pt-0 border-t sm:border-0 border-slate-100">
+                      <p
+                        className={`font-extrabold text-sm sm:text-base ${transaction.type === 'income'
+                            ? 'text-emerald-600'
+                            : 'text-red-600'
+                          }`}
+                      >
+                        {transaction.amount}
+                      </p>
+                      <span className="material-symbols-outlined text-slate-400 text-sm sm:text-base">
+                        chevron_right
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
             )}
           </div>
 
           {/* Pagination */}
-          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-slate-500">
-              Showing 1-{filteredTransactions.length} of {recentTransactions.length} transactions
+          <div className="p-3 sm:p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
+            <p className="text-xs sm:text-sm text-slate-500">
+              Showing {filteredTransactions.length} of {transactions.length} transactions
             </p>
             <div className="flex gap-1.5">
               <button
-                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 border border-slate-200 rounded-lg text-xs sm:text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50"
                 disabled
               >
                 Previous
               </button>
-              <button className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-xs">
+              <button className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg text-xs sm:text-sm font-bold shadow-xs">
                 1
               </button>
-              <button className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+              <button className="px-3 sm:px-4 py-1.5 sm:py-2 border border-slate-200 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
                 Next
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Transaction Details Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedTransaction(null);
+        }}
+        title="Transaction Details"
+        size="lg"
+      >
+        {selectedTransaction && (
+          <div className="space-y-4">
+            {/* Header with type indicator */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold ${selectedTransaction.type === 'income'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-red-100 text-red-700'
+                    }`}
+                >
+                  {selectedTransaction.type === 'income' ? 'Income' : 'Expense'}
+                </span>
+                <span className="text-xs text-slate-500">
+                  {selectedTransaction.date}
+                </span>
+              </div>
+              <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-500">
+                ID: {selectedTransaction.id?.slice(-8) || 'N/A'}
+              </span>
+            </div>
+
+            {/* Description & Amount */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</p>
+                <p className="text-base font-bold text-slate-900 mt-1">
+                  {selectedTransaction.description}
+                </p>
+              </div>
+              <div className={`p-3 rounded-xl border ${selectedTransaction.type === 'income'
+                  ? 'bg-emerald-50 border-emerald-100'
+                  : 'bg-red-50 border-red-100'
+                }`}>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Amount</p>
+                <p className={`text-2xl font-extrabold mt-1 ${selectedTransaction.type === 'income'
+                    ? 'text-emerald-600'
+                    : 'text-red-600'
+                  }`}>
+                  {selectedTransaction.amount}
+                </p>
+              </div>
+            </div>
+
+            {/* Category & Type */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Category</p>
+                <p className="text-sm font-bold text-slate-800 mt-1">
+                  {selectedTransaction.category}
+                </p>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Type</p>
+                <p className="text-sm font-bold text-slate-800 mt-1 capitalize">
+                  {selectedTransaction.type}
+                </p>
+              </div>
+            </div>
+
+            {/* Notes */}
+            {selectedTransaction.notes && (
+              <div className="bg-amber-50 p-3 rounded-xl border border-amber-100">
+                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Notes</p>
+                <p className="text-sm text-slate-700 mt-1 italic">
+                  {selectedTransaction.notes}
+                </p>
+              </div>
+            )}
+
+            {/* Logged By */}
+            {selectedTransaction.loggedBy && (
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logged By</p>
+                <p className="text-sm font-bold text-slate-800 mt-1">
+                  {selectedTransaction.loggedBy.username || 'Unknown'}
+                  {selectedTransaction.loggedBy.email && (
+                    <span className="text-xs font-normal text-slate-500 ml-2">
+                      ({selectedTransaction.loggedBy.email})
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* Timestamps */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200/60">
+              {selectedTransaction.createdAt && (
+                <div>
+                  <p className="text-[9px] font-semibold text-slate-400">Created</p>
+                  <p className="text-xs font-medium text-slate-600">
+                    {formatDateFull(selectedTransaction.createdAt)}
+                  </p>
+                </div>
+              )}
+              {selectedTransaction.updatedAt && (
+                <div>
+                  <p className="text-[9px] font-semibold text-slate-400">Last Updated</p>
+                  <p className="text-xs font-medium text-slate-600">
+                    {formatDateFull(selectedTransaction.updatedAt)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Close Button */}
+            <div className="flex gap-2 pt-3 border-t border-slate-200">
+              <button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setSelectedTransaction(null);
+                }}
+                className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Material Symbols Styling */}
       <style>{`
@@ -415,6 +732,13 @@ const Financials: React.FC = () => {
         .material-symbols-outlined {
           font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
           vertical-align: middle;
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

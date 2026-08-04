@@ -1,5 +1,5 @@
 // src/components/Sidebar.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,9 +10,18 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, user } = useAuth();
+  const { logout, user, isLoading } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 Sidebar Debug:');
+    console.log('  user:', user);
+    console.log('  userType prop:', userType);
+    console.log('  isLoading:', isLoading);
+    console.log('  current path:', location.pathname);
+  }, [user, userType, isLoading, location.pathname]);
 
   // Hide sidebar on landing page, auth pages, track, and profile
   const hideSidebar = location.pathname === '/' ||
@@ -27,10 +36,40 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
 
   if (hideSidebar) return null;
 
-  const isActive = (path: string) => location.pathname === path;
+  // Wait for user to load
+  if (isLoading) {
+    return (
+      <aside className="fixed md:relative z-40 bg-white border-r border-[#e1e2ed]/50 shadow-sm w-64 h-[calc(100vh-4rem)] overflow-y-auto pt-4">
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#004ac6] border-t-transparent"></div>
+        </div>
+      </aside>
+    );
+  }
 
-  const userRole = user?.role || userType;
+  // If no user, show nothing
+  if (!user) {
+    console.warn('⚠️ No user found in Sidebar');
+    return null;
+  }
+
+  const isActive = (path: string) => {
+    if (path === '/admin') {
+      return location.pathname === '/admin';
+    }
+    return location.pathname === path || location.pathname.startsWith(path + '/');
+  };
+
+  const userRole = user?.role || userType || 'customer';
   const isAdmin = userRole === 'manager' || userRole === 'ceo';
+  const isCEO = userRole === 'ceo';
+
+  console.log('🔍 Sidebar Role Check:', {
+    userRole,
+    isAdmin,
+    isCEO,
+    user: user?.username
+  });
 
   const customerLinks = [
     { path: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
@@ -45,15 +84,15 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
     { path: '/admin/expenses', icon: 'payments', label: 'Expenses' },
     { path: '/admin/complaints', icon: 'chat', label: 'Complaints' },
     { path: '/admin/financials', icon: 'trending_up', label: 'Financials' },
-    { path: '/admin/profile', icon: 'person', label: 'Profile' }
+    { path: '/admin/profile', icon: 'person', label: 'Profile' },
+    { path: '/admin/create-staff', icon: 'person_add', label: 'Create Staff' },
   ];
 
-  let links = customerLinks;
-  if (isAdmin) links = adminLinks;
+  let links = isAdmin ? adminLinks : customerLinks;
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
-    
+
     setIsLoggingOut(true);
     try {
       await logout();
@@ -80,21 +119,20 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:relative z-40 bg-white border-r border-[#e1e2ed]/50 shadow-sm transition-all duration-300 ${
-          isCollapsed ? 'left-0' : '-left-64 md:left-0'
-        } w-64 h-[calc(100vh-4rem)] overflow-y-auto pt-4`}
+        className={`fixed md:relative z-40 bg-white border-r border-[#e1e2ed]/50 shadow-sm transition-all duration-300 ${isCollapsed ? 'left-0' : '-left-64 md:left-0'
+          } w-64 h-[calc(100vh-4rem)] overflow-y-auto pt-4`}
       >
         <div className="px-4 pb-4 border-b border-[#e1e2ed]/20">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-[#dbe1ff] flex items-center justify-center text-[#004ac6] font-bold">
-              {isAdmin ? 'AD' : user?.username?.charAt(0) || 'U'}
+            <div className="w-10 h-10 rounded-full bg-[#dbe1ff] flex items-center justify-center text-[#004ac6] font-bold text-sm">
+              {isAdmin ? (isCEO ? 'CEO' : 'AD') : user?.username?.charAt(0)?.toUpperCase() || 'U'}
             </div>
             <div>
               <p className="text-sm font-bold text-[#191b23]">
-                {isAdmin ? 'Administrator' : user?.username || 'User'}
+                {isAdmin ? (isCEO ? 'CEO' : 'Administrator') : user?.username || 'User'}
               </p>
               <p className="text-[10px] text-[#434655] capitalize">
-                {isAdmin ? 'Admin' : user?.role || 'Customer'}
+                {isAdmin ? (isCEO ? 'CEO' : 'Admin') : user?.role || 'Customer'}
               </p>
             </div>
           </div>
@@ -105,11 +143,11 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
             <Link
               key={link.path}
               to={link.path}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(link.path)
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(link.path)
                   ? 'bg-[#dbe1ff] text-[#004ac6]'
                   : 'text-[#434655] hover:bg-[#f3f3fe] hover:text-[#004ac6]'
-              }`}
+                }`}
+              onClick={() => setIsCollapsed(false)}
             >
               <span className="material-symbols-outlined text-base">{link.icon}</span>
               {link.label}
@@ -117,7 +155,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#e1e2ed]/20">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#e1e2ed]/20 bg-white">
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}

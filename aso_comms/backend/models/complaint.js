@@ -1,3 +1,4 @@
+// backend/models/complaint.js
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -6,30 +7,53 @@ const complaintSchema = new Schema({
         type: String,
         required: true,
         uppercase: true,
-        trim: true
-    },
-    repair: {
-        type: Schema.Types.ObjectId,
-        ref: 'Repair'
+        trim: true,
+        index: true
     },
     submittedBy: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: true,
+        index: true
+    },
+    repair: {
+        type: Schema.Types.ObjectId,
+        ref: 'Repair',
+        index: true
     },
     customerName: {
         type: String,
-        required: [true, 'Customer name is required'],
+        required: true,
         trim: true
     },
     customerPhone: {
         type: String,
-        required: [true, 'Phone number is required'],
+        required: true,
         trim: true
+    },
+    customerEmail: {
+        type: String,
+        lowercase: true,
+        trim: true,
+        index: true,
+        required: false,
+        default: null
+    },
+    images: {
+        type: [{
+            url: String,
+            publicId: String,
+            originalName: String,
+            uploadedAt: {
+                type: Date,
+                default: Date.now
+            }
+        }],
+        default: []
     },
     subject: {
         type: String,
-        required: [true, 'Complaint subject is required'],
+        required: true,
         trim: true
     },
     category: {
@@ -39,13 +63,18 @@ const complaintSchema = new Schema({
     },
     description: {
         type: String,
-        required: [true, 'Detailed description is required'],
+        required: true,
         trim: true
     },
     status: {
         type: String,
         enum: ['Open', 'Under Review', 'Escalated', 'Resolved'],
         default: 'Open'
+    },
+    severity: {
+        type: String,
+        enum: ['low', 'medium', 'high'],
+        default: 'medium'
     },
     resolutionNotes: {
         type: String,
@@ -56,7 +85,29 @@ const complaintSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User'
     },
-    resolvedAt: Date
+    resolvedAt: {
+        type: Date
+    },
+    // Track status history
+    statusHistory: [{
+        status: {
+            type: String,
+            enum: ['Open', 'Under Review', 'Escalated', 'Resolved']
+        },
+        changedBy: {
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        notes: String,
+        changedAt: {
+            type: Date,
+            default: Date.now
+        }
+    }]
 }, { timestamps: true });
+
+// Add index for faster queries
+complaintSchema.index({ status: 1 });
+complaintSchema.index({ resolvedAt: -1 });
 
 module.exports = mongoose.model('Complaint', complaintSchema);

@@ -27,6 +27,7 @@ const transactionRoutes = require('./routes/transactions');
 const complaintRoutes = require('./routes/complaints');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const uploadRoutes = require('./routes/uploads');
 
 // ==============================================
 // CONNECT TO MONGODB
@@ -143,7 +144,7 @@ app.get('/api/current-user', (req, res) => {
         delete user.salt;
         delete user.otpCode;
         delete user.otpExpires;
-        
+
         return res.json({
             success: true,
             user: user,
@@ -160,6 +161,7 @@ app.get('/api/current-user', (req, res) => {
 // ==============================================
 // 👇 MOUNT ALL ROUTES
 // ==============================================
+app.use('/uploads', uploadRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/', userRoutes);
 app.use('/repairs', repairRoutes);
@@ -208,8 +210,8 @@ app.use((err, req, res, next) => {
     console.error('Error:', err);
 
     if (req.headers.accept && req.headers.accept.includes('application/json')) {
-        return res.status(statusCode).json({ 
-            error: message, 
+        return res.status(statusCode).json({
+            error: message,
             statusCode,
             timestamp: new Date().toISOString()
         });

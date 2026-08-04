@@ -1,4 +1,4 @@
-// models/user.js
+// backend/models/user.js
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const passportLocalMongoose = require('passport-local-mongoose');
@@ -17,11 +17,11 @@ const UserSchema = new Schema({
   phoneNumber: String,
   status: {
     type: String,
-    enum: ['Active', 'Guest'],
+    enum: ['Active', 'Guest', 'Pending', 'Customer'],
     default: 'Guest'
   },
 
-  // 👇 INTEGRATED HERE: Added fields for OTP storage and expiration
+  // OTP fields for email verification
   otpCode: {
     type: String,
     default: null
@@ -31,19 +31,14 @@ const UserSchema = new Schema({
     default: null
   },
   isVerified: {
-    type: Boolean, 
+    type: Boolean,
     default: false
-  },
-  status: { 
-        type: String, 
-        default: 'Guest',
-        enum: ['Guest', 'Pending', 'Active', 'Customer'] // 👈 Make sure 'Pending' and 'Active' are here!
-    }
+  }
 });
 
 // This plugin automatically handles usernames, passwords, hashes, and salts!
-UserSchema.plugin(passportLocalMongoose.default || passportLocalMongoose, { 
-    usernameQueryFields: ['email'] 
+UserSchema.plugin(passportLocalMongoose.default || passportLocalMongoose, {
+  usernameQueryFields: ['email']
 });
 
 module.exports = mongoose.model('User', UserSchema);

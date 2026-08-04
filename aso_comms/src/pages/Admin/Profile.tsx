@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+// src/pages/Admin/Profile.tsx
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import Toast from '../../components/Toast';
+import { api } from '../../api/axios';
 
 interface AdminProfileData {
   name: string;
@@ -13,7 +17,7 @@ interface AdminProfileData {
   stats: {
     complaintsResolved: number;
     activeRepairs: number;
-    teamMembers: number;
+    totalRevenue: number;
     slaCompliance: string;
   };
   recentActivity: {
@@ -27,75 +31,182 @@ interface AdminProfileData {
 }
 
 const AdminProfile: React.FC = () => {
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
   const [profile, setProfile] = useState<AdminProfileData>({
-    name: 'Akinwunmi Sode',
-    email: 'a.sode@asocomms.com',
-    phone: '+234 802 345 6789',
-    role: 'Account Manager',
-    department: 'Customer Success',
-    employeeId: 'EMP-2024-001',
-    joinDate: 'March 2023',
+    name: '',
+    email: '',
+    phone: '',
+    role: '',
+    department: '',
+    employeeId: '',
+    joinDate: '',
     stats: {
-      complaintsResolved: 147,
-      activeRepairs: 23,
-      teamMembers: 8,
-      slaCompliance: '94.2%',
+      complaintsResolved: 0,
+      activeRepairs: 0,
+      totalRevenue: 0,
+      slaCompliance: '0%',
     },
-    recentActivity: [
-      {
-        id: '1',
-        action: 'Resolved complaint #CMP-88219',
-        date: '2 hours ago',
-        icon: 'check_circle',
-        color: 'bg-emerald-50 text-emerald-600',
-      },
-      {
-        id: '2',
-        action: 'Assigned repair #REC-2045 to Tech_Support',
-        date: '4 hours ago',
-        icon: 'assignment',
-        color: 'bg-blue-50 text-blue-600',
-      },
-      {
-        id: '3',
-        action: 'Updated SLA policy for enterprise clients',
-        date: '1 day ago',
-        icon: 'update',
-        color: 'bg-amber-50 text-amber-600',
-      },
-    ],
-    permissions: [
-      'Manage Complaints',
-      'Assign Repairs',
-      'Approve Expenses',
-      'View Analytics',
-      'Manage Team',
-    ],
+    recentActivity: [],
+    permissions: [],
   });
 
   const [formData, setFormData] = useState({
-    name: profile.name,
-    email: profile.email,
-    phone: profile.phone,
-    role: profile.role,
-    department: profile.department,
+    name: '',
+    email: '',
+    phone: '',
+    role: '',
+    department: '',
   });
 
-  const handleSave = (e: React.FormEvent) => {
+  // Format currency
+  const formatCurrency = (amount: number): string => {
+    return `₦${amount.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    })}`;
+  };
+
+  // Fetch admin profile data
+  const fetchAdminProfile = async () => {
+    try {
+      setLoading(true);
+      console.log('🔄 Fetching admin profile...');
+
+      // Get current user info
+      const userResponse = await api.get('/api/current-user');
+      const currentUser = userResponse.data.user;
+      console.log('👤 Current user:', currentUser);
+
+      // Fetch stats from various endpoints
+      const [repairsRes, complaintsRes, expensesRes] = await Promise.all([
+        api.get('/repairs'),
+        api.get('/complaints'),
+        api.get('/expenses')
+      ]);
+
+      const repairs = repairsRes.data.repairs || [];
+      const complaints = complaintsRes.data.complaints || [];
+      const expenses = expensesRes.data.expenses || [];
+
+      // Calculate stats
+      const resolvedComplaints = complaints.filter((c: any) => c.status === 'Resolved').length;
+      const activeRepairs = repairs.filter((r: any) => r.status !== 'Collected' && r.status !== 'Resolved').length;
+
+      // Calculate total revenue from approved expenses
+      const totalRevenue = expenses
+        .filter((e: any) => e.status === 'approved')
+        .reduce((sum: number, e: any) => sum + (e.amount || 0), 0);
+
+      // Build profile data with phone from database
+      const profileData: AdminProfileData = {
+        name: currentUser?.username || 'Administrator',
+        email: currentUser?.email || 'admin@asocomms.com',
+        phone: currentUser?.phoneNumber || 'Not provided', // ✅ Fetched from DB
+        role: currentUser?.role === 'ceo' ? 'CEO' : currentUser?.role === 'manager' ? 'Manager' : 'Admin',
+        department: 'Administration',
+        employeeId: `EMP-${Date.now().toString().slice(-6)}`,
+        joinDate: new Date(currentUser?.createdAt || Date.now()).toLocaleDateString('en-US', {
+          month: 'long',
+          year: 'numeric'
+        }),
+        stats: {
+          complaintsResolved: resolvedComplaints,
+          activeRepairs: activeRepairs,
+          totalRevenue: totalRevenue,
+          slaCompliance: '94.2%',
+        },
+        recentActivity: [
+          {
+            id: '1',
+            action: `Resolved ${resolvedComplaints} complaints this month`,
+            date: 'Today',
+            icon: 'check_circle',
+            color: 'bg-emerald-50 text-emerald-600',
+          },
+          {
+            id: '2',
+            action: `${activeRepairs} active repairs in progress`,
+            date: 'Today',
+            icon: 'build',
+            color: 'bg-blue-50 text-blue-600',
+          },
+          {
+            id: '3',
+            action: `Total revenue: ${formatCurrency(totalRevenue)}`,
+            date: 'This month',
+            icon: 'payments',
+            color: 'bg-green-50 text-green-600',
+          },
+        ],
+        permissions: [
+          'Manage Complaints',
+          'Assign Repairs',
+          'Approve Expenses',
+          'View Analytics',
+          'Manage Team',
+        ],
+      };
+
+      setProfile(profileData);
+      setFormData({
+        name: profileData.name,
+        email: profileData.email,
+        phone: profileData.phone,
+        role: profileData.role,
+        department: profileData.department,
+      });
+
+      console.log('✅ Profile data loaded:', profileData);
+    } catch (err: any) {
+      console.error('❌ Failed to fetch admin profile:', err);
+      setToast({
+        message: err.response?.data?.error || 'Failed to load profile data.',
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdminProfile();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProfile((prev) => ({
-      ...prev,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      role: formData.role,
-      department: formData.department,
-    }));
-    setIsEditing(false);
-    triggerToast('Admin profile updated successfully!');
+    try {
+      // Update user profile via API
+      const response = await api.patch('/api/update-profile', {
+        username: formData.name,
+        email: formData.email,
+        phoneNumber: formData.phone,
+      });
+
+      console.log('✅ Profile updated:', response.data);
+
+      setProfile((prev) => ({
+        ...prev,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        role: formData.role,
+        department: formData.department,
+      }));
+      setIsEditing(false);
+      setToast({ message: 'Profile updated successfully!', type: 'success' });
+      await fetchAdminProfile();
+    } catch (err: any) {
+      console.error('❌ Failed to update profile:', err);
+      setToast({
+        message: err.response?.data?.error || 'Failed to update profile.',
+        type: 'error'
+      });
+    }
   };
 
   const handleCancel = () => {
@@ -109,36 +220,42 @@ const AdminProfile: React.FC = () => {
     setIsEditing(false);
   };
 
-  const triggerToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
   const initials = profile.name
     .split(' ')
     .map((n) => n[0])
-    .join('');
+    .join('')
+    .slice(0, 2);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+          <p className="mt-3 text-sm font-medium text-slate-500">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6">
       {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 text-xs font-bold animate-in">
-          <span className="material-symbols-outlined text-emerald-400 text-base">
-            check_circle
-          </span>
-          {toastMessage}
-        </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-blue-600 text-2xl">
+            <span className="material-symbols-outlined text-blue-600 text-xl sm:text-2xl">
               admin_panel_settings
             </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
               Admin Profile
             </h1>
           </div>
@@ -146,20 +263,20 @@ const AdminProfile: React.FC = () => {
             Manage administrative credentials, team permissions, and operational settings
           </p>
         </div>
-        <div className="flex gap-2.5 shrink-0">
+        <div className="flex gap-2 sm:gap-2.5 shrink-0">
           {isEditing ? (
             <>
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-colors active:scale-95 text-xs shadow-xs cursor-pointer"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 border border-slate-300 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-colors active:scale-95 text-xs shadow-xs cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 text-xs shadow-xs cursor-pointer"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 text-xs shadow-xs cursor-pointer"
               >
                 Save Changes
               </button>
@@ -168,7 +285,7 @@ const AdminProfile: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold flex items-center gap-1.5 hover:bg-blue-700 transition-all active:scale-95 text-xs shadow-xs cursor-pointer"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-xl font-bold flex items-center gap-1.5 hover:bg-blue-700 transition-all active:scale-95 text-xs shadow-xs cursor-pointer"
             >
               <span className="material-symbols-outlined text-base">edit</span>
               Edit Profile
@@ -180,27 +297,27 @@ const AdminProfile: React.FC = () => {
       {/* Main Profile Card Container */}
       <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
         {/* Cover Header */}
-        <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 px-6 py-8 text-white">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-            <div className="relative shrink-0 self-start sm:self-auto">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/20 flex items-center justify-center text-white text-2xl sm:text-3xl font-black border-4 border-white/30 shadow-md">
+        <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 px-4 sm:px-6 py-6 sm:py-8 text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <div className="relative shrink-0 self-center sm:self-auto">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-white/20 flex items-center justify-center text-white text-xl sm:text-2xl md:text-3xl font-black border-4 border-white/30 shadow-md">
                 {initials}
               </div>
               <div
-                className="absolute bottom-0 right-0 bg-blue-500 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center"
+                className="absolute bottom-0 right-0 bg-blue-500 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-white flex items-center justify-center"
                 title="Verified Admin"
               >
-                <span className="material-symbols-outlined text-white text-[11px] font-bold">
+                <span className="material-symbols-outlined text-white text-[8px] sm:text-[11px] font-bold">
                   verified
                 </span>
               </div>
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-xl sm:text-3xl font-extrabold tracking-tight">
+            <div className="space-y-1 text-center sm:text-left">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-2.5">
+                <h2 className="text-lg sm:text-xl md:text-3xl font-extrabold tracking-tight">
                   {profile.name}
                 </h2>
-                <span className="bg-white/20 backdrop-blur-md text-white px-3 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1">
+                <span className="bg-white/20 backdrop-blur-md text-white px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">shield</span>
                   {profile.role}
                 </span>
@@ -208,7 +325,7 @@ const AdminProfile: React.FC = () => {
               <p className="text-blue-100 text-xs sm:text-sm font-medium">
                 {profile.department}
               </p>
-              <div className="flex flex-wrap gap-4 mt-2 text-blue-200/80 text-[11px] font-semibold">
+              <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 mt-2 text-blue-200/80 text-[10px] sm:text-[11px] font-semibold">
                 <p className="flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">badge</span>
                   {profile.employeeId}
@@ -217,59 +334,63 @@ const AdminProfile: React.FC = () => {
                   <span className="material-symbols-outlined text-sm">calendar_month</span>
                   Joined {profile.joinDate}
                 </p>
+                <p className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">phone</span>
+                  {profile.phone}
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Admin Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 p-4 sm:p-6 border-b border-slate-200/80 bg-slate-50/50">
+        {/* Admin Stats Grid - Removed Team Members, Added Total Revenue */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 p-3 sm:p-6 border-b border-slate-200/80 bg-slate-50/50">
           <div className="text-center">
-            <p className="text-xl sm:text-2xl font-black text-blue-600">
+            <p className="text-lg sm:text-xl md:text-2xl font-black text-blue-600">
               {profile.stats.complaintsResolved}
             </p>
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
+            <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
               Resolved
             </p>
           </div>
           <div className="text-center md:border-l border-slate-200/80">
-            <p className="text-xl sm:text-2xl font-black text-blue-600">
+            <p className="text-lg sm:text-xl md:text-2xl font-black text-blue-600">
               {profile.stats.activeRepairs}
             </p>
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
+            <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
               Active Repairs
             </p>
           </div>
           <div className="text-center border-t md:border-t-0 md:border-l border-slate-200/80 pt-2 md:pt-0">
-            <p className="text-xl sm:text-2xl font-black text-blue-600">
-              {profile.stats.teamMembers}
+            <p className="text-lg sm:text-xl md:text-2xl font-black text-emerald-600">
+              {formatCurrency(profile.stats.totalRevenue)}
             </p>
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
-              Team Members
+            <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
+              Total Revenue
             </p>
           </div>
           <div className="text-center border-t md:border-t-0 md:border-l border-slate-200/80 pt-2 md:pt-0">
-            <p className="text-xl sm:text-2xl font-black text-emerald-600">
+            <p className="text-lg sm:text-xl md:text-2xl font-black text-emerald-600">
               {profile.stats.slaCompliance}
             </p>
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
+            <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
               SLA Compliance
             </p>
           </div>
         </div>
 
         {/* Form / Details Section */}
-        <div className="p-4 sm:p-6">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-1.5">
+        <div className="p-3 sm:p-6">
+          <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 sm:mb-4 flex items-center gap-1.5">
             <span className="material-symbols-outlined text-blue-600 text-base">badge</span>
             Professional Information
           </h3>
 
           {isEditing ? (
             /* Edit Mode */
-            <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
                   Full Name
                 </label>
                 <input
@@ -277,12 +398,12 @@ const AdminProfile: React.FC = () => {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
+                  className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
                   Email Address
                 </label>
                 <input
@@ -290,12 +411,12 @@ const AdminProfile: React.FC = () => {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
+                  className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
                   Phone Number
                 </label>
                 <input
@@ -303,12 +424,12 @@ const AdminProfile: React.FC = () => {
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
+                  className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
                   Role Title
                 </label>
                 <input
@@ -316,12 +437,12 @@ const AdminProfile: React.FC = () => {
                   required
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
+                  className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
                   Department
                 </label>
                 <input
@@ -329,15 +450,15 @@ const AdminProfile: React.FC = () => {
                   required
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
+                  className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
                 />
               </div>
             </form>
           ) : (
             /* View Mode */
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/60">
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
+              <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-200/60">
+                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                   Full Name
                 </p>
                 <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
@@ -345,8 +466,8 @@ const AdminProfile: React.FC = () => {
                 </p>
               </div>
 
-              <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/60">
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-200/60">
+                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                   Email
                 </p>
                 <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5 truncate">
@@ -354,8 +475,8 @@ const AdminProfile: React.FC = () => {
                 </p>
               </div>
 
-              <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/60">
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-200/60">
+                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                   Phone
                 </p>
                 <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
@@ -363,8 +484,8 @@ const AdminProfile: React.FC = () => {
                 </p>
               </div>
 
-              <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/60">
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-200/60">
+                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                   Role
                 </p>
                 <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
@@ -372,8 +493,8 @@ const AdminProfile: React.FC = () => {
                 </p>
               </div>
 
-              <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/60">
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-200/60">
+                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                   Department
                 </p>
                 <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
@@ -381,8 +502,8 @@ const AdminProfile: React.FC = () => {
                 </p>
               </div>
 
-              <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/60">
-                <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-200/60">
+                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                   Employee ID
                 </p>
                 <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
@@ -394,18 +515,18 @@ const AdminProfile: React.FC = () => {
         </div>
 
         {/* Permissions */}
-        <div className="p-4 sm:p-6 border-t border-slate-200/80 bg-slate-50/30">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+        <div className="p-3 sm:p-6 border-t border-slate-200/80 bg-slate-50/30">
+          <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 sm:mb-3 flex items-center gap-1.5">
             <span className="material-symbols-outlined text-blue-600 text-base">lock</span>
             Assigned System Permissions
           </h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {profile.permissions.map((permission, index) => (
               <span
                 key={index}
-                className="bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"
+                className="bg-blue-50 text-blue-700 border border-blue-100 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold flex items-center gap-1"
               >
-                <span className="material-symbols-outlined text-xs">check</span>
+                <span className="material-symbols-outlined text-[10px] sm:text-xs">check</span>
                 {permission}
               </span>
             ))}
@@ -413,24 +534,24 @@ const AdminProfile: React.FC = () => {
         </div>
 
         {/* Recent Activity */}
-        <div className="p-4 sm:p-6 border-t border-slate-200/80">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-1.5">
+        <div className="p-3 sm:p-6 border-t border-slate-200/80">
+          <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 sm:mb-4 flex items-center gap-1.5">
             <span className="material-symbols-outlined text-blue-600 text-base">history</span>
             Recent System Activity
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {profile.recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-start gap-3">
+              <div key={activity.id} className="flex items-start gap-2 sm:gap-3">
                 <div
-                  className={`w-8 h-8 rounded-xl ${activity.color} flex items-center justify-center shrink-0 shadow-xs mt-0.5`}
+                  className={`w-6 h-6 sm:w-8 sm:h-8 rounded-xl ${activity.color} flex items-center justify-center shrink-0 shadow-xs mt-0.5`}
                 >
-                  <span className="material-symbols-outlined text-base">{activity.icon}</span>
+                  <span className="material-symbols-outlined text-sm sm:text-base">{activity.icon}</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm font-semibold text-slate-800">
+                  <p className="text-[11px] sm:text-xs md:text-sm font-semibold text-slate-800">
                     {activity.action}
                   </p>
-                  <p className="text-[11px] font-bold text-slate-400">{activity.date}</p>
+                  <p className="text-[9px] sm:text-[11px] font-bold text-slate-400">{activity.date}</p>
                 </div>
               </div>
             ))}
@@ -438,11 +559,11 @@ const AdminProfile: React.FC = () => {
         </div>
 
         {/* Quick Admin Actions */}
-        <div className="p-4 sm:p-6 border-t border-slate-200/80 bg-slate-50/50">
-          <div className="flex flex-col sm:flex-row gap-2.5">
+        <div className="p-3 sm:p-6 border-t border-slate-200/80 bg-slate-50/50">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2.5">
             <Link
               to="/admin/repairs"
-              className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 text-white py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 text-xs shadow-xs"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 text-white py-2 sm:py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 text-[10px] sm:text-xs shadow-xs"
             >
               <span className="material-symbols-outlined text-base">build</span>
               Manage Repairs
@@ -450,7 +571,7 @@ const AdminProfile: React.FC = () => {
 
             <Link
               to="/admin/complaints"
-              className="flex-1 flex items-center justify-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 py-2.5 rounded-xl font-bold hover:bg-blue-100 transition-colors active:scale-95 text-xs"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 py-2 sm:py-2.5 rounded-xl font-bold hover:bg-blue-100 transition-colors active:scale-95 text-[10px] sm:text-xs"
             >
               <span className="material-symbols-outlined text-base">chat</span>
               Resolve Complaints
@@ -458,7 +579,7 @@ const AdminProfile: React.FC = () => {
 
             <Link
               to="/admin/financials"
-              className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-slate-200/80 text-slate-700 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition-colors active:scale-95 text-xs shadow-xs"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-slate-200/80 text-slate-700 py-2 sm:py-2.5 rounded-xl font-bold hover:bg-slate-50 transition-colors active:scale-95 text-[10px] sm:text-xs shadow-xs"
             >
               <span className="material-symbols-outlined text-base">trending_up</span>
               View Financials
@@ -471,6 +592,13 @@ const AdminProfile: React.FC = () => {
         .material-symbols-outlined {
           font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
           vertical-align: middle;
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

@@ -1,10 +1,11 @@
 // src/pages/Auth/Login.tsx
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../../api/axios';
+import { useAuth } from '../../context/AuthContext';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { login, user, isLoading: authLoading } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -12,26 +13,19 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
 
-  // Check if user is already logged in
+  // Redirect if already logged in - using AuthContext
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await api.get('/api/current-user');
-        if (response.data.user) {
-          const user = response.data.user;
-          if (user.role === 'manager' || user.role === 'ceo') {
-            navigate('/admin');
-          } else {
-            navigate('/dashboard');
-          }
-        }
-      } catch (error) {
-        // Not logged in, stay on login page
-        console.log('Not authenticated');
+    console.log('👤 Login: Auth state changed', { user: user?.username, role: user?.role, authLoading });
+
+    if (!authLoading && user) {
+      console.log('✅ Login: User already logged in, redirecting...');
+      if (user.role === 'manager' || user.role === 'ceo') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
       }
-    };
-    checkAuth();
-  }, [navigate]);
+    }
+  }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,39 +38,29 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      console.log('Attempting login with:', { username, password: '***' });
+      console.log('🔐 Attempting login with:', { username });
 
-      const response = await api.post('/login', {
-        username: username.trim(),
-        password: password
-      });
+      // Use the login function from AuthContext
+      const response = await login(username.trim(), password);
+      console.log('✅ Login response:', response);
 
-      console.log('Login response:', response.data);
-
-      if (response.data.success && response.data.user) {
-        const user = response.data.user;
-        
-        // Check if user is verified
-        if (user && !user.isVerified) {
-          navigate(`/verify-otp?email=${encodeURIComponent(user.email)}&purpose=signup`);
-          return;
-        }
-
-        // Redirect based on role
-        if (user.role === 'manager' || user.role === 'ceo') {
-          navigate('/admin');
-        } else {
-          navigate('/dashboard');
-        }
-      } else {
-        setError(response.data.error || 'Invalid credentials. Please try again.');
-        setIsLoading(false);
+      // Check if user is verified
+      if (response.user && !response.user.isVerified) {
+        navigate(`/verify-otp?email=${encodeURIComponent(response.user.email)}&purpose=signup`);
+        return;
       }
+
+      // The redirect will happen in the useEffect above
+
     } catch (err: any) {
-      console.error('Login error:', err);
-      console.error('Error response:', err.response?.data);
-      
+      console.error('❌ Login error:', err);
+
       // Handle specific error messages
+      if (err.response?.status === 403 && err.response?.data?.needsVerification) {
+        navigate(`/verify-otp?email=${encodeURIComponent(err.response.data.email)}&purpose=signup`);
+        return;
+      }
+
       if (err.response?.status === 401) {
         setError('Invalid username or password. Please try again.');
       } else if (err.response?.data?.error) {

@@ -13,7 +13,6 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false, userType = null }) 
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -27,41 +26,29 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false, userType = null }) 
 
   if (hideNav) return null;
 
-  const handleLogout = async () => {
-    if (isLoggingOut) return;
-    
-    setIsLoggingOut(true);
-    try {
-      await logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-      // Force navigate to login even if there's an error
-      navigate('/login');
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
-
   // Determine user role from context or prop
   const userRole = user?.role || userType;
   const isAdmin = userRole === 'manager' || userRole === 'ceo';
   const isCustomer = userRole === 'customer';
+  const isLoggedInUser = !!user || isLoggedIn;
+
+  // ✅ Hide hamburger menu when logged in (customer or admin)
+  const showHamburger = !isLoggedInUser;
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md shadow-sm border-b border-[#e1e2ed]/20">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
+          <Link to={isLoggedInUser ? (isAdmin ? '/admin' : '/dashboard') : '/'} className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[#004ac6] text-2xl">precision_manufacturing</span>
             <span className="text-xl font-bold text-[#004ac6] tracking-tight">AsoComms</span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            {!isLoggedIn && !user ? (
-              // Public Nav
+            {!isLoggedInUser ? (
+              // Public Nav - NOT LOGGED IN
               <>
                 <Link
                   to="/"
@@ -88,7 +75,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false, userType = null }) 
                 </Link>
               </>
             ) : isCustomer ? (
-              // Customer Nav
+              // Customer Nav - LOGGED IN AS CUSTOMER (No logout, no hamburger)
               <>
                 <Link
                   to="/dashboard"
@@ -111,77 +98,38 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false, userType = null }) 
                 >
                   Profile
                 </Link>
-                <button
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                  className="text-sm font-medium text-[#ba1a1a] hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                >
-                  {isLoggingOut ? (
-                    <>
-                      <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
-                      Logging out...
-                    </>
-                  ) : (
-                    'Logout'
-                  )}
-                </button>
                 <div className="w-8 h-8 rounded-full bg-[#dbe1ff] flex items-center justify-center text-[#004ac6] font-bold text-sm">
-                  {user?.username?.charAt(0) || 'U'}
+                  {user?.username?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
               </>
             ) : isAdmin ? (
-              // Admin Nav
+              // Admin/CEO/Manager Nav - LOGGED IN AS ADMIN (No logout, no hamburger)
               <>
-                <Link
-                  to="/admin"
-                  className={`text-sm font-medium transition-colors ${isActive('/admin') ? 'text-[#004ac6]' : 'text-[#434655] hover:text-[#004ac6]'
-                    }`}
-                >
-                  Admin
-                </Link>
-                <Link
-                  to="/admin/repairs"
-                  className={`text-sm font-medium transition-colors ${isActive('/admin/repairs') ? 'text-[#004ac6]' : 'text-[#434655] hover:text-[#004ac6]'
-                    }`}
-                >
-                  Repairs
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                  className="text-sm font-medium text-[#ba1a1a] hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                >
-                  {isLoggingOut ? (
-                    <>
-                      <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
-                      Logging out...
-                    </>
-                  ) : (
-                    'Logout'
-                  )}
-                </button>
                 <div className="w-8 h-8 rounded-full bg-[#004ac6] flex items-center justify-center text-white font-bold text-sm">
-                  {user?.username?.charAt(0) || 'A'}
+                  {user?.username?.charAt(0)?.toUpperCase() || 'A'}
                 </div>
               </>
             ) : null}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-[#434655] hover:bg-[#f3f3fe] rounded-lg transition-colors"
-          >
-            <span className="material-symbols-outlined">
-              {isMobileMenuOpen ? 'close' : 'menu'}
-            </span>
-          </button>
+          {/* ✅ Mobile Menu Button - ONLY SHOW WHEN NOT LOGGED IN */}
+          {showHamburger && (
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-[#434655] hover:bg-[#f3f3fe] rounded-lg transition-colors"
+            >
+              <span className="material-symbols-outlined">
+                {isMobileMenuOpen ? 'close' : 'menu'}
+              </span>
+            </button>
+          )}
         </div>
 
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
+        {/* ✅ Mobile Menu - ONLY SHOW WHEN NOT LOGGED IN */}
+        {showHamburger && isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-[#e1e2ed]/20 space-y-3">
-            {!isLoggedIn && !user ? (
+            {!isLoggedInUser ? (
+              // Public Mobile Nav
               <>
                 <Link to="/" className="block text-sm font-medium text-[#434655] hover:text-[#004ac6] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
                   Home
@@ -199,41 +147,6 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false, userType = null }) 
                 >
                   Get Started
                 </Link>
-              </>
-            ) : isCustomer ? (
-              <>
-                <Link to="/dashboard" className="block text-sm font-medium text-[#434655] hover:text-[#004ac6] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                  Dashboard
-                </Link>
-                <Link to="/complaints" className="block text-sm font-medium text-[#434655] hover:text-[#004ac6] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                  My Complaints
-                </Link>
-                <Link to="/profile" className="block text-sm font-medium text-[#434655] hover:text-[#004ac6] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                  Profile
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                  className="block text-sm font-medium text-[#ba1a1a] hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoggingOut ? 'Logging out...' : 'Logout'}
-                </button>
-              </>
-            ) : isAdmin ? (
-              <>
-                <Link to="/admin" className="block text-sm font-medium text-[#434655] hover:text-[#004ac6] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                  Admin
-                </Link>
-                <Link to="/admin/repairs" className="block text-sm font-medium text-[#434655] hover:text-[#004ac6] transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                  Repairs
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                  className="block text-sm font-medium text-[#ba1a1a] hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoggingOut ? 'Logging out...' : 'Logout'}
-                </button>
               </>
             ) : null}
           </div>

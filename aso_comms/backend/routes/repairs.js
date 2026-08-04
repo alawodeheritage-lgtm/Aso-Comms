@@ -30,7 +30,7 @@ router.get('/', isLoggedIn, catchAsync(async (req, res) => {
         .sort({ dateLogged: -1, createdAt: -1 });
 
     console.log(`📊 Found ${repairs.length} repairs`);
-    
+
     res.json({
         success: true,
         count: repairs.length,
@@ -41,6 +41,7 @@ router.get('/', isLoggedIn, catchAsync(async (req, res) => {
 // ==========================================
 // CREATE NEW REPAIR
 // ==========================================
+// backend/routes/repairs.js - Simplified CREATE route
 router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
     try {
         console.log('========================================');
@@ -49,7 +50,7 @@ router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
         console.log('📦 Request Body:', JSON.stringify(req.body, null, 2));
         console.log('========================================');
 
-        // Create repair data - simplified, no hardware/accessories
+        // Create repair data
         const repairData = {
             customerName: req.body.customerName,
             phoneNumber: req.body.phoneNumber,
@@ -69,10 +70,20 @@ router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
         console.log('📦 Processed Repair Data:', JSON.stringify(repairData, null, 2));
 
         const newRepair = new Repair(repairData);
-        
+
         console.log('💾 Saving to database...');
-        await newRepair.save();
-        
+
+        // Save with error handling
+        try {
+            await newRepair.save();
+        } catch (saveError) {
+            console.error('❌ Save error:', saveError);
+            return res.status(400).json({
+                success: false,
+                error: saveError.message || 'Failed to save repair'
+            });
+        }
+
         console.log('✅ Repair saved successfully!');
         console.log('🎫 Ticket ID:', newRepair.ticketId);
         console.log('🆔 Repair ID:', newRepair._id);
@@ -87,7 +98,13 @@ router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
     } catch (error) {
         console.error('❌ Error creating repair:', error);
         console.error('❌ Error stack:', error.stack);
-        next(error);
+
+        // Send proper error response
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to create repair',
+            details: error.stack
+        });
     }
 });
 

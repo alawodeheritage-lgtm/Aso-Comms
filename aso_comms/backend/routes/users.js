@@ -6,8 +6,9 @@ const catchAsync = require('../utils/catchAsync');
 const passport = require('passport');
 const { repairJoiSchema } = require('../schemas');
 const Repair = require('../models/repair');
+const { isLoggedIn } = require('../middleware');
 
-// 💥 ADDED: Import the auth controller for OTP generation logic
+// Import the auth controller for OTP generation logic
 const authController = require('../controllers/authController');
 const sendOTPEmail = require('../utils/sendEmail');
 
@@ -24,9 +25,10 @@ router.post('/register', async (req, res) => {
     // 1. Check if the user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
+      // ✅ SECURITY: Use generic message to prevent email enumeration
       return res.status(400).json({
         success: false,
-        error: 'An account with this email or username already exists.'
+        error: 'Registration failed. Please check your details and try again.'
       });
     }
 
@@ -94,9 +96,10 @@ router.post('/register', async (req, res) => {
 
   } catch (e) {
     console.error('Registration error:', e);
+    // ✅ SECURITY: Generic error message
     return res.status(500).json({
       success: false,
-      error: e.message || 'Registration failed. Please try again.'
+      error: 'Registration failed. Please try again later.'
     });
   }
 });
@@ -109,11 +112,19 @@ router.get('/login', (req, res) => {
 // routes/users.js - Simple login with email/username support
 router.post('/login', (req, res, next) => {
   const { username, password } = req.body;
-  
+
   console.log('========================================');
   console.log('🔐 LOGIN ATTEMPT');
   console.log('📧 Input:', username);
   console.log('========================================');
+
+  // Validate input
+  if (!username || !password) {
+    return res.status(400).json({
+      success: false,
+      error: 'Username and password are required'
+    });
+  }
 
   // First, find the user by email or username
   User.findOne({
@@ -122,86 +133,88 @@ router.post('/login', (req, res, next) => {
       { email: username.toLowerCase().trim() }
     ]
   })
-  .then(user => {
-    if (!user) {
-      console.log('❌ User not found');
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid username or password'
-      });
-    }
-
-    console.log('👤 Found user:', user.username);
-
-    // Now authenticate with Passport using the found username
-    passport.authenticate('local', (err, authUser, info) => {
-      if (err) {
-        console.error('❌ Passport error:', err);
-        return res.status(500).json({
-          success: false,
-          error: 'Server error during login'
-        });
-      }
-
-      if (!authUser) {
-        console.log('❌ Invalid password');
+    .then(user => {
+      if (!user) {
+        console.log('❌ User not found');
+        // ✅ SECURITY: Generic error message
         return res.status(401).json({
           success: false,
-          error: 'Invalid username or password'
+          error: 'Invalid credentials'
         });
       }
 
-      req.logIn(authUser, (err) => {
+      console.log('👤 Found user:', user.username);
+
+      // Now authenticate with Passport using the found username
+      passport.authenticate('local', (err, authUser, info) => {
         if (err) {
-          console.error('❌ Login session error:', err);
+          console.error('❌ Passport error:', err);
           return res.status(500).json({
             success: false,
-            error: 'Login failed. Please try again.'
+            error: 'Server error during login'
           });
         }
 
-        // Check if user is verified
-        if (!authUser.isVerified) {
-          console.log('⚠️ User not verified');
-          return res.status(403).json({
+        if (!authUser) {
+          console.log('❌ Invalid password');
+          // ✅ SECURITY: Generic error message
+          return res.status(401).json({
             success: false,
-            error: 'Please verify your account with your OTP code before logging in.',
-            needsVerification: true,
-            email: authUser.email,
-            redirect: `/verify-otp?email=${encodeURIComponent(authUser.email)}&purpose=signup`
+            error: 'Invalid credentials'
           });
         }
 
-        // Remove sensitive data
-        const userData = {
-          _id: authUser._id,
-          username: authUser.username,
-          email: authUser.email,
-          role: authUser.role,
-          phoneNumber: authUser.phoneNumber,
-          status: authUser.status,
-          isVerified: authUser.isVerified
-        };
+        req.logIn(authUser, (err) => {
+          if (err) {
+            console.error('❌ Login session error:', err);
+            return res.status(500).json({
+              success: false,
+              error: 'Login failed. Please try again.'
+            });
+          }
 
-        console.log(`✅ User logged in: ${authUser.username} (${authUser.role})`);
-        console.log('========================================');
+          // Check if user is verified
+          if (!authUser.isVerified) {
+            console.log('⚠️ User not verified');
+            return res.status(403).json({
+              success: false,
+              error: 'Please verify your account before logging in.',
+              needsVerification: true,
+              email: authUser.email,
+              redirect: `/verify-otp?email=${encodeURIComponent(authUser.email)}&purpose=signup`
+            });
+          }
 
-        return res.json({
-          success: true,
-          message: `Welcome back, ${authUser.username}!`,
-          user: userData,
-          redirect: authUser.role === 'manager' || authUser.role === 'ceo' ? '/admin' : '/dashboard'
+          // Remove sensitive data
+          const userData = {
+            _id: authUser._id,
+            username: authUser.username,
+            email: authUser.email,
+            role: authUser.role,
+            phoneNumber: authUser.phoneNumber,
+            status: authUser.status,
+            isVerified: authUser.isVerified
+          };
+
+          console.log(`✅ User logged in: ${authUser.username} (${authUser.role})`);
+          console.log('========================================');
+
+          return res.json({
+            success: true,
+            message: `Welcome back, ${authUser.username}!`,
+            user: userData,
+            redirect: authUser.role === 'manager' || authUser.role === 'ceo' ? '/admin' : '/dashboard'
+          });
         });
+      })(req, res, next);
+    })
+    .catch(error => {
+      console.error('❌ Login error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Server error during login'
       });
-    })(req, res, next);
-  })
-  .catch(error => {
-    console.error('❌ Login error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Server error during login'
     });
-  });
 });
 
 // Get current logged-in user
@@ -213,24 +226,99 @@ router.get('/api/current-user', (req, res) => {
     delete user.salt;
     delete user.otpCode;
     delete user.otpExpires;
-    
-    return res.json({ 
-      success: true, 
+
+    return res.json({
+      success: true,
       user: user,
-      isAuthenticated: true 
+      isAuthenticated: true
     });
   }
-  return res.status(401).json({ 
-    success: false, 
+  return res.status(401).json({
+    success: false,
     isAuthenticated: false,
-    error: 'Not authenticated' 
+    error: 'Not authenticated'
   });
+});
+
+// ====== UPDATE PROFILE ROUTE ======
+router.patch('/api/update-profile', isLoggedIn, async (req, res) => {
+  try {
+    const { username, email, phoneNumber } = req.body;
+    const userId = req.user._id;
+
+    // Check if email is already taken by another user
+    if (email) {
+      const existingUser = await User.findOne({
+        email: email.toLowerCase().trim(),
+        _id: { $ne: userId }
+      });
+      if (existingUser) {
+        // ✅ SECURITY: Generic error message
+        return res.status(400).json({
+          success: false,
+          error: 'Update failed. Please check your details.'
+        });
+      }
+    }
+
+    // Check if username is already taken by another user
+    if (username) {
+      const existingUser = await User.findOne({
+        username: username.trim(),
+        _id: { $ne: userId }
+      });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          error: 'Update failed. Please check your details.'
+        });
+      }
+    }
+
+    // Update user
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        username: username?.trim(),
+        email: email?.toLowerCase().trim(),
+        phoneNumber: phoneNumber?.trim(),
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Remove sensitive data
+    const userData = updatedUser.toObject();
+    delete userData.hash;
+    delete userData.salt;
+    delete userData.otpCode;
+    delete userData.otpExpires;
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: userData
+    });
+
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update profile'
+    });
+  }
 });
 
 // ====== LOGOUT ROUTE ======
 router.get('/logout', (req, res, next) => {
   req.logout(function (err) {
-    if (err) { 
+    if (err) {
       return res.status(500).json({
         success: false,
         error: 'Logout failed'

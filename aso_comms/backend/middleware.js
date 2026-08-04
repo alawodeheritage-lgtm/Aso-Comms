@@ -13,9 +13,9 @@ module.exports.isLoggedIn = (req, res, next) => {
 
 module.exports.validateRepair = (req, res, next) => {
     console.log('🔍 Validating repair data:', JSON.stringify(req.body, null, 2));
-    
+
     const { error, value } = repairJoiSchema.validate(req.body);
-    
+
     if (error) {
         const msg = error.details.map(el => el.message).join(', ');
         console.log('❌ Validation error:', msg);
@@ -61,4 +61,21 @@ module.exports.validateComplaint = (req, res, next) => {
     } else {
         next();
     }
+};
+// middleware.js - Update validateComplaint
+module.exports.validateComplaint = (req, res, next) => {
+    const { ticketId, customerName, customerPhone, subject, category, description } = req.body;
+    const errors = [];
+
+    if (!ticketId) errors.push('Ticket ID is required');
+    if (!customerName) errors.push('Customer name is required');
+    if (!subject) errors.push('Subject is required');
+    if (!description) errors.push('Description is required');
+    // customerPhone is optional now
+
+    if (errors.length > 0) {
+        return res.status(400).json({ error: errors.join(', ') });
+    }
+
+    next();
 };
