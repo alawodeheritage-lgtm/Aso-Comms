@@ -545,7 +545,8 @@ const AdminRepairs: React.FC = () => {
                           <span className="material-symbols-outlined text-[10px] sm:text-xs">photo_camera</span>
                           {repair.images.length}
                         </span>
-                      </>
+
+                        73              </>
                     )}
                   </div>
                 </div>
