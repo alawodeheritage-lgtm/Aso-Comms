@@ -11,7 +11,7 @@ router.post('/single', isLoggedIn, catchAsync(async (req, res) => {
         if (err) {
             return res.status(400).json({ error: err.message });
         }
-        
+
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
@@ -34,12 +34,19 @@ router.post('/single', isLoggedIn, catchAsync(async (req, res) => {
 }));
 
 // Upload multiple files
+// backend/routes/uploads.js
 router.post('/multiple', isLoggedIn, catchAsync(async (req, res) => {
+    console.log('📤 Upload multiple files request received');
+    console.log('📤 Files:', req.files);
+
     uploadMultiple(req, res, async (err) => {
         if (err) {
+            console.error('Upload error:', err);
             return res.status(400).json({ error: err.message });
         }
-        
+
+        console.log('📤 Files after upload:', req.files);
+
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ error: 'No files uploaded' });
         }
@@ -49,10 +56,12 @@ router.post('/multiple', isLoggedIn, catchAsync(async (req, res) => {
             publicId: file.filename,
             originalName: file.originalname,
             size: file.size,
-            format: file.format
+            format: file.format,
+            uploadedAt: new Date().toISOString()
         }));
 
-        console.log(`📤 ${files.length} files uploaded`);
+        console.log(`📤 ${files.length} files uploaded to Cloudinary`);
+        console.log('📤 Files:', files);
 
         res.json({
             success: true,
@@ -65,9 +74,9 @@ router.post('/multiple', isLoggedIn, catchAsync(async (req, res) => {
 // Delete file from Cloudinary
 router.delete('/:publicId', isLoggedIn, catchAsync(async (req, res) => {
     const { publicId } = req.params;
-    
+
     const result = await deleteFromCloudinary(publicId);
-    
+
     if (!result) {
         return res.status(404).json({ error: 'File not found or already deleted' });
     }

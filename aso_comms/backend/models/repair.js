@@ -1,21 +1,9 @@
 // backend/models/repair.js
+
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const RepairSchema = new Schema({
-  // Primary reference to user
-  user: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    index: true // ✅ Add index here instead of separate schema.index()
-  },
-  // DEPRECATED: Use 'user' instead. Keeping for backward compatibility
-  owner: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    index: true
-  },
-  // Read-only snapshots
   customerName: {
     type: String,
     required: true
@@ -56,12 +44,16 @@ const RepairSchema = new Schema({
   },
   ticketId: {
     type: String,
-    unique: true, // ✅ Keep unique here
-    index: true, // ✅ This creates the index
+    unique: true,
+    index: true,
     sparse: true
   },
+  owner: {
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  },
   images: {
-    type: [String],
+    type: [String], // ✅ Changed to array of strings
     default: []
   },
   financials: {
@@ -84,18 +76,6 @@ const RepairSchema = new Schema({
       default: 'Unpaid'
     }
   },
-  images: {
-        type: [{
-            url: String,
-            publicId: String,
-            originalName: String,
-            uploadedAt: {
-                type: Date,
-                default: Date.now
-            }
-        }],
-        default: []
-    },
   dateLogged: {
     type: Date,
     default: Date.now
@@ -108,17 +88,7 @@ const RepairSchema = new Schema({
   timestamps: true
 });
 
-// ============================================
-// ✅ REMOVED: Duplicate index definitions
-// These were causing the warning
-// ============================================
-// RepairSchema.index({ ticketId: 1 }); // ❌ REMOVED - duplicate
-// RepairSchema.index({ user: 1 }); // ❌ REMOVED - use index: true in schema
-// RepairSchema.index({ owner: 1 }); // ❌ REMOVED - use index: true in schema
-
-// ============================================
 // Pre-save hook
-// ============================================
 RepairSchema.pre('save', async function () {
   try {
     console.log('🔧 Pre-save hook triggered for repair:', this.customerName);

@@ -1,5 +1,5 @@
 // src/components/ImageUpload.tsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../api/axios';
 
 interface ImageUploadProps {
@@ -24,6 +24,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<any[]>(existingImages);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync when existingImages changes (e.g., when editing a repair)
+  useEffect(() => {
+    setImages(existingImages);
+  }, [existingImages]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -59,11 +64,14 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
       if (response.data.success) {
         const newImages = response.data.files;
-        const updatedImages = [...images, ...newImages];
-        setImages(updatedImages);
-        onUploadComplete(updatedImages);
+        // ✅ Use functional update to get the latest state
+        setImages(prev => {
+          const updated = [...prev, ...newImages];
+          // ✅ Call the parent callback with the merged list
+          onUploadComplete(updated);
+          return updated;
+        });
         setUploadProgress(100);
-        
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -78,7 +86,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
   const handleRemove = async (index: number) => {
     const imageToRemove = images[index];
-    
+
     if (imageToRemove.publicId) {
       try {
         await api.delete(`/uploads/${imageToRemove.publicId}`);
@@ -90,7 +98,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     const updatedImages = images.filter((_, i) => i !== index);
     setImages(updatedImages);
     onUploadComplete(updatedImages);
-    
+
     if (onRemove && imageToRemove.publicId) {
       onRemove(imageToRemove.publicId);
     }
@@ -98,10 +106,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
   return (
     <div className="space-y-3">
-      <div 
-        className={`border-2 border-dashed rounded-xl p-4 sm:p-6 text-center transition-all ${
-          uploading ? 'border-blue-300 bg-blue-50/50' : 'border-slate-300 hover:border-blue-400 hover:bg-blue-50/30'
-        }`}
+      <div
+        className={`border-2 border-dashed rounded-xl p-4 sm:p-6 text-center transition-all ${uploading ? 'border-blue-300 bg-blue-50/50' : 'border-slate-300 hover:border-blue-400 hover:bg-blue-50/30'
+          }`}
       >
         <input
           ref={fileInputRef}
@@ -113,12 +120,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           className="hidden"
           id="file-upload"
         />
-        
+
         <label
           htmlFor="file-upload"
-          className={`cursor-pointer flex flex-col items-center gap-2 ${
-            images.length >= maxFiles ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
+          className={`cursor-pointer flex flex-col items-center gap-2 ${images.length >= maxFiles ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
         >
           <span className="material-symbols-outlined text-3xl text-slate-400">
             cloud_upload
@@ -128,7 +134,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
               {uploading ? 'Uploading...' : 'Click or drag to upload'}
             </p>
             <p className="text-xs text-slate-500">
-              {images.length >= maxFiles 
+              {images.length >= maxFiles
                 ? `Maximum ${maxFiles} files reached`
                 : `Up to ${maxFiles} files (max 10MB each)`}
             </p>
@@ -138,7 +144,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         {uploading && (
           <div className="mt-3">
             <div className="w-full bg-slate-200 rounded-full h-2">
-              <div 
+              <div
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               />
@@ -156,8 +162,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {images.map((image, index) => (
             <div key={index} className="relative group">
-              <img 
-                src={image.url} 
+              <img
+                src={image.url}
                 alt={`Upload ${index + 1}`}
                 className="w-full h-24 sm:h-28 object-cover rounded-lg border border-slate-200"
               />

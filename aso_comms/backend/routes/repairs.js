@@ -31,6 +31,11 @@ router.get('/', isLoggedIn, catchAsync(async (req, res) => {
 
     console.log(`📊 Found ${repairs.length} repairs`);
 
+    // Log images for debugging
+    repairs.forEach((repair, index) => {
+        console.log(`📸 Repair ${index + 1} (${repair.ticketId}): images =`, repair.images);
+    });
+
     res.json({
         success: true,
         count: repairs.length,
@@ -39,9 +44,8 @@ router.get('/', isLoggedIn, catchAsync(async (req, res) => {
 }));
 
 // ==========================================
-// CREATE NEW REPAIR
+// CREATE NEW REPAIR - FIXED
 // ==========================================
-// backend/routes/repairs.js - Simplified CREATE route
 router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
     try {
         console.log('========================================');
@@ -50,7 +54,13 @@ router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
         console.log('📦 Request Body:', JSON.stringify(req.body, null, 2));
         console.log('========================================');
 
-        // Create repair data
+        // ✅ Extract images from request body
+        const { images } = req.body;
+        console.log('📸 Images received in backend:', images);
+        console.log('📸 Images type:', typeof images);
+        console.log('📸 Is array:', Array.isArray(images));
+
+        // Create repair data WITH images
         const repairData = {
             customerName: req.body.customerName,
             phoneNumber: req.body.phoneNumber,
@@ -64,14 +74,16 @@ router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
                 totalEstimate: req.body.financials?.totalEstimate || 0,
                 amountPaid: req.body.financials?.amountPaid || 0,
             },
-            owner: req.user._id
+            owner: req.user._id,
+            images: images || [] // ✅ Add images to repairData
         };
 
-        console.log('📦 Processed Repair Data:', JSON.stringify(repairData, null, 2));
+        console.log('📦 Processed Repair Data with images:', JSON.stringify(repairData, null, 2));
 
         const newRepair = new Repair(repairData);
 
         console.log('💾 Saving to database...');
+        console.log('📸 Images being saved:', newRepair.images);
 
         // Save with error handling
         try {
@@ -87,6 +99,7 @@ router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
         console.log('✅ Repair saved successfully!');
         console.log('🎫 Ticket ID:', newRepair.ticketId);
         console.log('🆔 Repair ID:', newRepair._id);
+        console.log('📸 Saved images:', newRepair.images);
         console.log('========================================');
 
         res.status(201).json({
@@ -99,7 +112,6 @@ router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
         console.error('❌ Error creating repair:', error);
         console.error('❌ Error stack:', error.stack);
 
-        // Send proper error response
         res.status(500).json({
             success: false,
             error: error.message || 'Failed to create repair',
@@ -116,15 +128,19 @@ router.get('/:id', isLoggedIn, catchAsync(async (req, res) => {
     const repair = await Repair.findById(id).populate('owner');
 
     if (!repair) {
-        req.flash('error', 'Cannot find that repair record!');
-        return res.redirect('/repairs');
+        return res.status(404).json({
+            success: false,
+            error: 'Cannot find that repair record!'
+        });
     }
 
     const isManagement = req.user.role === 'manager' || req.user.role === 'ceo';
 
     if (!isManagement && (!repair.owner || !repair.owner.equals(req.user._id))) {
-        req.flash('error', 'You do not have permission to view that repair ticket!');
-        return res.redirect('/repairs');
+        return res.status(403).json({
+            success: false,
+            error: 'You do not have permission to view that repair ticket!'
+        });
     }
 
     res.json({
@@ -136,6 +152,8 @@ router.get('/:id', isLoggedIn, catchAsync(async (req, res) => {
 // ==========================================
 // UPDATE REPAIR
 // ==========================================
+// routes/repairs.js - Update the PUT route
+
 router.put('/:id', isLoggedIn, isStaff, validateRepair, async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -148,7 +166,7 @@ router.put('/:id', isLoggedIn, isStaff, validateRepair, async (req, res, next) =
             });
         }
 
-        // Update only allowed fields
+        // ✅ Include images in the update
         const updateData = {
             customerName: req.body.customerName,
             phoneNumber: req.body.phoneNumber,
@@ -161,11 +179,15 @@ router.put('/:id', isLoggedIn, isStaff, validateRepair, async (req, res, next) =
             financials: {
                 totalEstimate: req.body.financials?.totalEstimate || repair.financials.totalEstimate,
                 amountPaid: req.body.financials?.amountPaid || repair.financials.amountPaid,
-            }
+            },
+            images: req.body.images || repair.images  // ✅ ADD THIS LINE
         };
 
         Object.assign(repair, updateData);
         await repair.save();
+
+        // ✅ Populate the repair with the updated images
+        await repair.populate('owner', 'username email');
 
         res.json({
             success: true,

@@ -6,7 +6,9 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  showImages?: boolean;
+  images?: (string | { url: string; publicId?: string; originalName?: string })[];
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -14,7 +16,9 @@ const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
-  size = 'md'
+  size = 'md',
+  showImages = false,
+  images = []
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -42,7 +46,28 @@ const Modal: React.FC<ModalProps> = ({
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-lg',
-    xl: 'max-w-xl'
+    xl: 'max-w-xl',
+    full: 'max-w-4xl'
+  };
+
+  // Helper function to get image URL from various formats
+  const getImageUrl = (img: string | { url: string; publicId?: string; originalName?: string }): string => {
+    if (typeof img === 'string') return img;
+    if (img && typeof img === 'object') return img.url || '';
+    return '';
+  };
+
+  // Helper function to get image name
+  const getImageName = (img: string | { url: string; publicId?: string; originalName?: string }): string => {
+    if (typeof img === 'string') {
+      // Extract filename from URL
+      const parts = img.split('/');
+      return parts[parts.length - 1] || 'Image';
+    }
+    if (img && typeof img === 'object') {
+      return img.originalName || 'Image';
+    }
+    return 'Image';
   };
 
   return (
@@ -52,7 +77,7 @@ const Modal: React.FC<ModalProps> = ({
         className={`bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#e1e2ed]/50">
+        <div className="flex items-center justify-between p-4 border-b border-[#e1e2ed]/50 sticky top-0 bg-white z-10 rounded-t-2xl">
           <h3 className="text-lg font-bold text-[#191b23]">{title}</h3>
           <button
             onClick={onClose}
@@ -63,7 +88,67 @@ const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="p-4">{children}</div>
+        <div className="p-4">
+          {/* Images Section - if showImages is true and there are images */}
+          {showImages && images && images.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+                Attached Images ({images.length})
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {images.map((img, index) => {
+                  const imageUrl = getImageUrl(img);
+                  const imageName = getImageName(img);
+
+                  if (!imageUrl) return null;
+
+                  return (
+                    <a
+                      key={index}
+                      href={imageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group relative block aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 hover:shadow-md transition-all"
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`Image ${index + 1}: ${imageName}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          console.error('Image failed to load:', imageUrl);
+                          // Show fallback
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement('div');
+                            fallback.className = 'w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50';
+                            fallback.innerHTML = `
+                              <span class="material-symbols-outlined text-4xl">broken_image</span>
+                              <span class="text-xs mt-1 truncate max-w-full px-2">${imageName}</span>
+                            `;
+                            parent.appendChild(fallback);
+                          }
+                        }}
+                      />
+                      {/* Image count badge on hover */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-white text-xs truncate block">{imageName}</span>
+                      </div>
+                      {/* Click to view badge */}
+                      <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        View
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Children content */}
+          {children}
+        </div>
       </div>
     </div>
   );

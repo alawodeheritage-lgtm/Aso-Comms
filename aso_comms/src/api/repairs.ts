@@ -2,17 +2,33 @@
 import { api } from './axios';
 
 export interface RepairData {
-  deviceModel: string;
   customerName: string;
-  customerEmail: string;
   phoneNumber: string;
+  customerEmail: string;
+  deviceModel: string;
   issueDescription: string;
-  status: 'Pending' | 'Diagnosing' | 'Repairing' | 'Ready' | 'Collected';
+  status?: 'Pending' | 'Diagnosing' | 'Repairing' | 'Ready' | 'Collected';
+  priority?: 'low' | 'medium' | 'high';
+  assignedTo?: string;
   financials?: {
     totalEstimate: number;
     amountPaid: number;
-    balanceDue?: number;
-    paymentStatus?: string;
+  };
+  images?: string[];
+}
+
+export interface RepairUpdateData {
+  customerName?: string;
+  phoneNumber?: string;
+  customerEmail?: string;
+  deviceModel?: string;
+  issueDescription?: string;
+  status?: 'Pending' | 'Diagnosing' | 'Repairing' | 'Ready' | 'Collected';
+  priority?: 'low' | 'medium' | 'high';
+  assignedTo?: string;
+  financials?: {
+    totalEstimate: number;
+    amountPaid: number;
   };
   images?: string[];
 }
@@ -37,12 +53,12 @@ export const repairsAPI = {
   },
 
   // Update repair
-  update: async (id: string, data: Partial<RepairData>) => {
+  update: async (id: string, data: RepairUpdateData) => {
     const response = await api.put(`/repairs/${id}`, data);
     return response.data;
   },
 
-  // Update status
+  // Update status only
   updateStatus: async (id: string, status: string) => {
     const response = await api.patch(`/repairs/${id}/status`, { status });
     return response.data;
