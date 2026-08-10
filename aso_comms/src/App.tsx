@@ -40,6 +40,8 @@ import AdminProfile from './pages/Admin/Profile';
 // Staff Management Page
 import CreateStaff from './pages/Admin/CreateStaff';
 
+import PrivacyPolicy from './pages/Public/PrivacyPolicy';
+import TermsOfService from './pages/Public/TermsOfService';
 // ============================================
 // 📄 404 NOT FOUND PAGE
 // ============================================
@@ -300,6 +302,9 @@ const App: React.FC = () => {
                 }
               />
 
+              {/* // Inside your Router: */}
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
               {/* ===== 404 - Catch all ===== */}
               <Route path="*" element={<NotFound />} />
             </Routes>

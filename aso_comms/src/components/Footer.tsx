@@ -22,12 +22,12 @@ const Footer: React.FC = () => {
             <Link className="text-[#434655] hover:text-[#004ac6] transition-colors text-sm" to="/register">
               Register
             </Link>
-            <a className="text-[#434655] hover:text-[#004ac6] transition-colors text-sm" href="#">
+            <Link to="/privacy" className="text-sm text-slate-500 hover:text-blue-600 transition-colors">
               Privacy Policy
-            </a>
-            <a className="text-[#434655] hover:text-[#004ac6] transition-colors text-sm" href="#">
+            </Link>
+            <Link to="/terms" className="text-sm text-slate-500 hover:text-blue-600 transition-colors">
               Terms of Service
-            </a>
+            </Link>
           </nav>
         </div>
 
