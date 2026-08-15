@@ -16,7 +16,7 @@ router.post('/single', isLoggedIn, catchAsync(async (req, res) => {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        console.log('📤 File uploaded:', req.file);
+        // console.log('📤 File uploaded:', req.file);
 
         res.json({
             success: true,
@@ -36,8 +36,8 @@ router.post('/single', isLoggedIn, catchAsync(async (req, res) => {
 // Upload multiple files
 // backend/routes/uploads.js
 router.post('/multiple', isLoggedIn, catchAsync(async (req, res) => {
-    console.log('📤 Upload multiple files request received');
-    console.log('📤 Files:', req.files);
+    // console.log('📤 Upload multiple files request received');
+    // console.log('📤 Files:', req.files);
 
     uploadMultiple(req, res, async (err) => {
         if (err) {
@@ -45,7 +45,7 @@ router.post('/multiple', isLoggedIn, catchAsync(async (req, res) => {
             return res.status(400).json({ error: err.message });
         }
 
-        console.log('📤 Files after upload:', req.files);
+        // console.log('📤 Files after upload:', req.files);
 
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ error: 'No files uploaded' });
@@ -60,8 +60,8 @@ router.post('/multiple', isLoggedIn, catchAsync(async (req, res) => {
             uploadedAt: new Date().toISOString()
         }));
 
-        console.log(`📤 ${files.length} files uploaded to Cloudinary`);
-        console.log('📤 Files:', files);
+        // console.log(`📤 ${files.length} files uploaded to Cloudinary`);
+        // console.log('📤 Files:', files);
 
         res.json({
             success: true,

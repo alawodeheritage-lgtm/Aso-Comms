@@ -50,17 +50,14 @@ const Modal: React.FC<ModalProps> = ({
     full: 'max-w-4xl'
   };
 
-  // Helper function to get image URL from various formats
   const getImageUrl = (img: string | { url: string; publicId?: string; originalName?: string }): string => {
     if (typeof img === 'string') return img;
     if (img && typeof img === 'object') return img.url || '';
     return '';
   };
 
-  // Helper function to get image name
   const getImageName = (img: string | { url: string; publicId?: string; originalName?: string }): string => {
     if (typeof img === 'string') {
-      // Extract filename from URL
       const parts = img.split('/');
       return parts[parts.length - 1] || 'Image';
     }
@@ -71,25 +68,24 @@ const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div
         ref={modalRef}
-        className={`bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto`}
+        className={`bg-white rounded-2xl shadow-xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto border border-slate-200/80`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#e1e2ed]/50 sticky top-0 bg-white z-10 rounded-t-2xl">
-          <h3 className="text-lg font-bold text-[#191b23]">{title}</h3>
+        <div className="flex items-center justify-between p-4 border-b border-slate-200/60 sticky top-0 bg-white z-10 rounded-t-2xl">
+          <h3 className="text-lg font-display font-bold text-[#1A365D]">{title}</h3>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-[#f3f3fe] rounded-lg transition-colors"
+            className="p-1 hover:bg-slate-50 rounded-lg transition-colors"
           >
-            <span className="material-symbols-outlined text-[#434655]">close</span>
+            <span className="material-symbols-outlined text-slate-400 hover:text-[#1A365D]">close</span>
           </button>
         </div>
 
         {/* Body */}
         <div className="p-4">
-          {/* Images Section - if showImages is true and there are images */}
           {showImages && images && images.length > 0 && (
             <div className="mb-4">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
@@ -99,9 +95,7 @@ const Modal: React.FC<ModalProps> = ({
                 {images.map((img, index) => {
                   const imageUrl = getImageUrl(img);
                   const imageName = getImageName(img);
-
                   if (!imageUrl) return null;
-
                   return (
                     <a
                       key={index}
@@ -112,11 +106,10 @@ const Modal: React.FC<ModalProps> = ({
                     >
                       <img
                         src={imageUrl}
-                        alt={`Image ${index + 1}: ${imageName}`}
+                        alt={`Image ${index + 1}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           console.error('Image failed to load:', imageUrl);
-                          // Show fallback
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
                           const parent = target.parentElement;
@@ -131,11 +124,9 @@ const Modal: React.FC<ModalProps> = ({
                           }
                         }}
                       />
-                      {/* Image count badge on hover */}
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <span className="text-white text-xs truncate block">{imageName}</span>
                       </div>
-                      {/* Click to view badge */}
                       <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                         View
                       </div>
@@ -146,7 +137,6 @@ const Modal: React.FC<ModalProps> = ({
             </div>
           )}
 
-          {/* Children content */}
           {children}
         </div>
       </div>

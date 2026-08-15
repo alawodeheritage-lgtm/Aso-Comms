@@ -23,7 +23,7 @@ const Notifications: React.FC = () => {
       read: false,
       type: 'complaint',
       icon: 'chat',
-      color: 'bg-[#2563eb]/10 text-[#004ac6]'
+      color: 'bg-blue-50 text-blue-600'
     },
     {
       id: '2',
@@ -33,7 +33,7 @@ const Notifications: React.FC = () => {
       read: false,
       type: 'repair',
       icon: 'build',
-      color: 'bg-green-100 text-green-600'
+      color: 'bg-emerald-50 text-emerald-600'
     },
     {
       id: '3',
@@ -43,7 +43,7 @@ const Notifications: React.FC = () => {
       read: true,
       type: 'payment',
       icon: 'payments',
-      color: 'bg-[#d5e4f8]/30 text-[#576676]'
+      color: 'bg-green-50 text-green-600'
     },
     {
       id: '4',
@@ -53,7 +53,7 @@ const Notifications: React.FC = () => {
       read: true,
       type: 'system',
       icon: 'settings',
-      color: 'bg-[#e1e2ed] text-[#434655]'
+      color: 'bg-slate-100 text-slate-600'
     }
   ]);
 
@@ -70,83 +70,100 @@ const Notifications: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#191b23]">Notifications</h1>
-          <p className="text-sm text-[#434655]">
-            {unreadCount > 0 ? `You have ${unreadCount} unread notifications` : 'All caught up!'}
-          </p>
-        </div>
-        {unreadCount > 0 && (
-          <button
-            onClick={markAllAsRead}
-            className="text-sm font-semibold text-[#004ac6] hover:underline"
-          >
-            Mark all as read
-          </button>
-        )}
-      </div>
+    <div className="min-h-screen bg-[#F8F6F1] px-4 py-6 md:px-6 md:py-8">
+      <div className="max-w-4xl mx-auto space-y-6">
 
-      <div className="space-y-3">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#1A365D] tracking-tight">Notifications</h1>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {unreadCount > 0 ? `You have ${unreadCount} unread notifications` : 'All caught up! ✨'}
+            </p>
+          </div>
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllAsRead}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#D97706] hover:text-[#b85f00] transition-colors hover:underline"
+            >
+              <span className="material-symbols-outlined text-base">done_all</span>
+              Mark all as read
+            </button>
+          )}
+        </div>
+
+        {/* Notifications List */}
         {notifications.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center border border-[#e1e2ed]/50">
-            <div className="w-16 h-16 rounded-full bg-[#f3f3fe] flex items-center justify-center mx-auto mb-4">
-              <span className="material-symbols-outlined text-[#737686] text-3xl">notifications_off</span>
+          <div className="bg-white rounded-2xl p-12 text-center border border-slate-200/80 shadow-sm">
+            <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+              <span className="material-symbols-outlined text-3xl text-slate-400">notifications_off</span>
             </div>
-            <h3 className="text-lg font-bold text-[#191b23] mb-2">No Notifications</h3>
-            <p className="text-sm text-[#434655]">You're all caught up!</p>
+            <h3 className="text-lg font-display font-bold text-[#1A365D] mb-2">No Notifications</h3>
+            <p className="text-sm text-slate-500">You're all caught up! 🎉</p>
           </div>
         ) : (
-          notifications.map((notification) => (
-            <div
-              key={notification.id}
-              className={`bg-white rounded-xl p-4 shadow-sm border transition-all ${notification.read
-                  ? 'border-[#e1e2ed]/50 opacity-70'
-                  : 'border-[#004ac6]/20 bg-[#faf8ff]'
-                }`}
-            >
-              <div className="flex gap-3">
-                <div className={`w-10 h-10 rounded-lg ${notification.color} flex items-center justify-center flex-shrink-0`}>
-                  <span className="material-symbols-outlined text-base">{notification.icon}</span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-semibold text-[#191b23]">{notification.title}</h4>
-                        {!notification.read && (
-                          <span className="w-2 h-2 rounded-full bg-[#004ac6] flex-shrink-0"></span>
-                        )}
-                      </div>
-                      <p className="text-sm text-[#434655] mt-0.5">{notification.message}</p>
-                    </div>
-                    <span className="text-[10px] text-[#434655] whitespace-nowrap flex-shrink-0">
-                      {notification.time}
-                    </span>
+          <div className="space-y-3">
+            {notifications.map((notification) => (
+              <div
+                key={notification.id}
+                className={`bg-white rounded-2xl p-5 border transition-all ${
+                  notification.read
+                    ? 'border-slate-200/80 opacity-70 hover:opacity-100'
+                    : 'border-[#1A365D]/20 shadow-sm hover:shadow-md'
+                } hover:border-[#1A365D]/30`}
+              >
+                <div className="flex gap-4">
+                  <div className={`w-11 h-11 rounded-xl ${notification.color} flex items-center justify-center flex-shrink-0`}>
+                    <span className="material-symbols-outlined text-base">{notification.icon}</span>
                   </div>
-                  {!notification.read && (
-                    <button
-                      onClick={() => markAsRead(notification.id)}
-                      className="text-xs font-semibold text-[#004ac6] hover:underline mt-1"
-                    >
-                      Mark as read
-                    </button>
-                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-[#1A365D]">{notification.title}</h4>
+                          {!notification.read && (
+                            <span className="w-2 h-2 rounded-full bg-[#1A365D] flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-600 mt-0.5">{notification.message}</p>
+                      </div>
+                      <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0">
+                        {notification.time}
+                      </span>
+                    </div>
+                    {!notification.read && (
+                      <button
+                        onClick={() => markAsRead(notification.id)}
+                        className="text-xs font-medium text-[#D97706] hover:text-[#b85f00] hover:underline transition-colors mt-1.5 inline-flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        Mark as read
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
-      </div>
 
-      <style>{`
-        .material-symbols-outlined {
-          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-          display: inline-block;
-          line-height: 1;
-        }
-      `}</style>
+        {/* Footer note */}
+        <div className="text-center text-xs text-slate-400 pt-4">
+          <p>Notifications are updated in real-time. Stay tuned for important updates.</p>
+        </div>
+
+        <style>{`
+          .font-display {
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+          }
+          .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+            display: inline-block;
+            line-height: 1;
+          }
+        `}</style>
+      </div>
     </div>
   );
 };

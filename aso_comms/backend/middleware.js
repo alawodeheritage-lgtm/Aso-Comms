@@ -12,17 +12,17 @@ module.exports.isLoggedIn = (req, res, next) => {
 };
 
 module.exports.validateRepair = (req, res, next) => {
-    console.log('🔍 Validating repair data:', JSON.stringify(req.body, null, 2));
+    // console.log('🔍 Validating repair data:', JSON.stringify(req.body, null, 2));
 
     const { error, value } = repairJoiSchema.validate(req.body);
 
     if (error) {
         const msg = error.details.map(el => el.message).join(', ');
-        console.log('❌ Validation error:', msg);
+        // console.log('❌ Validation error:', msg);
         throw new ExpressError(msg, 400);
     } else {
         req.body = value;
-        console.log('✅ Validation passed');
+        // console.log('✅ Validation passed');
         next();
     }
 };

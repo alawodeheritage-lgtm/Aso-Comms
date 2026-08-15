@@ -19,82 +19,84 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#191b23]">Settings</h1>
-        <p className="text-sm text-[#434655]">Manage your account preferences</p>
-      </div>
+    <div className="min-h-screen bg-[#F8F6F1] px-4 py-6 md:px-6 md:py-8">
+      <div className="max-w-3xl mx-auto space-y-6">
 
-      <div className="space-y-4">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl md:text-3xl font-display font-bold text-[#1A365D] tracking-tight">Settings</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Manage your account preferences and notifications.</p>
+        </div>
+
         {/* Notifications */}
-        <div className="bg-white rounded-xl shadow-sm border border-[#e1e2ed]/50 overflow-hidden">
-          <div className="p-4 border-b border-[#e1e2ed]/50">
-            <h3 className="text-sm font-bold text-[#191b23] flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#004ac6] text-base">notifications</span>
-              Notifications
-            </h3>
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-[#1A365D] text-xl">notifications</span>
+            <h2 className="text-sm font-bold text-[#1A365D]">Notifications</h2>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#191b23]">Email Notifications</p>
-                <p className="text-xs text-[#434655]">Receive updates via email</p>
+                <p className="text-sm font-semibold text-slate-800">Email Notifications</p>
+                <p className="text-xs text-slate-500">Receive updates via email</p>
               </div>
               <button
                 onClick={() => handleToggle('emailNotifications')}
-                className={`w-12 h-6 rounded-full transition-colors ${settings.emailNotifications ? 'bg-[#004ac6]' : 'bg-[#c3c6d7]'
-                  }`}
+                className={`w-12 h-6 rounded-full transition-colors ${settings.emailNotifications ? 'bg-[#1A365D]' : 'bg-slate-300'
+                  } relative`}
               >
-                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${settings.emailNotifications ? 'translate-x-6' : 'translate-x-1'
-                  }`}></div>
+                <div className={`w-4 h-4 rounded-full bg-white transition-transform absolute top-1 ${settings.emailNotifications ? 'translate-x-6' : 'translate-x-1'
+                  } shadow-sm`} />
               </button>
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#191b23]">Push Notifications</p>
-                <p className="text-xs text-[#434655]">Receive real-time alerts</p>
+                <p className="text-sm font-semibold text-slate-800">Push Notifications</p>
+                <p className="text-xs text-slate-500">Receive real-time alerts</p>
               </div>
               <button
                 onClick={() => handleToggle('pushNotifications')}
-                className={`w-12 h-6 rounded-full transition-colors ${settings.pushNotifications ? 'bg-[#004ac6]' : 'bg-[#c3c6d7]'
-                  }`}
+                className={`w-12 h-6 rounded-full transition-colors ${settings.pushNotifications ? 'bg-[#1A365D]' : 'bg-slate-300'
+                  } relative`}
               >
-                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${settings.pushNotifications ? 'translate-x-6' : 'translate-x-1'
-                  }`}></div>
+                <div className={`w-4 h-4 rounded-full bg-white transition-transform absolute top-1 ${settings.pushNotifications ? 'translate-x-6' : 'translate-x-1'
+                  } shadow-sm`} />
               </button>
             </div>
           </div>
         </div>
 
         {/* Preferences */}
-        <div className="bg-white rounded-xl shadow-sm border border-[#e1e2ed]/50 overflow-hidden">
-          <div className="p-4 border-b border-[#e1e2ed]/50">
-            <h3 className="text-sm font-bold text-[#191b23] flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#004ac6] text-base">settings</span>
-              Preferences
-            </h3>
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-[#1A365D] text-xl">settings</span>
+            <h2 className="text-sm font-bold text-[#1A365D]">Preferences</h2>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#191b23]">Dark Mode</p>
-                <p className="text-xs text-[#434655]">Switch to dark theme</p>
+                <p className="text-sm font-semibold text-slate-800">Dark Mode</p>
+                <p className="text-xs text-slate-500">Switch to dark theme</p>
               </div>
               <button
                 onClick={() => handleToggle('darkMode')}
-                className={`w-12 h-6 rounded-full transition-colors ${settings.darkMode ? 'bg-[#004ac6]' : 'bg-[#c3c6d7]'
-                  }`}
+                className={`w-12 h-6 rounded-full transition-colors ${settings.darkMode ? 'bg-[#1A365D]' : 'bg-slate-300'
+                  } relative`}
               >
-                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${settings.darkMode ? 'translate-x-6' : 'translate-x-1'
-                  }`}></div>
+                <div className={`w-4 h-4 rounded-full bg-white transition-transform absolute top-1 ${settings.darkMode ? 'translate-x-6' : 'translate-x-1'
+                  } shadow-sm`} />
               </button>
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#191b23]">Language</p>
-                <p className="text-xs text-[#434655]">Select your preferred language</p>
+                <p className="text-sm font-semibold text-slate-800">Language</p>
+                <p className="text-xs text-slate-500">Select your preferred language</p>
               </div>
-              <select className="px-3 py-1.5 bg-[#faf8ff] border border-[#c3c6d7] rounded-lg text-sm">
+              <select
+                value={settings.language}
+                onChange={(e) => setSettings({ ...settings, language: e.target.value })}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-[#1A365D]/20 focus:border-[#1A365D] outline-none transition-all"
+              >
                 <option>English</option>
                 <option>French</option>
                 <option>Spanish</option>
@@ -104,31 +106,33 @@ const Settings: React.FC = () => {
         </div>
 
         {/* Security */}
-        <div className="bg-white rounded-xl shadow-sm border border-[#e1e2ed]/50 overflow-hidden">
-          <div className="p-4 border-b border-[#e1e2ed]/50">
-            <h3 className="text-sm font-bold text-[#191b23] flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#004ac6] text-base">security</span>
-              Security
-            </h3>
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-[#1A365D] text-xl">security</span>
+            <h2 className="text-sm font-bold text-[#1A365D]">Security</h2>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#191b23]">Two-Factor Authentication</p>
-                <p className="text-xs text-[#434655]">Add an extra layer of security</p>
+                <p className="text-sm font-semibold text-slate-800">Two-Factor Authentication</p>
+                <p className="text-xs text-slate-500">Add an extra layer of security</p>
               </div>
               <button
                 onClick={() => handleToggle('twoFactorAuth')}
-                className={`w-12 h-6 rounded-full transition-colors ${settings.twoFactorAuth ? 'bg-[#004ac6]' : 'bg-[#c3c6d7]'
-                  }`}
+                className={`w-12 h-6 rounded-full transition-colors ${settings.twoFactorAuth ? 'bg-[#1A365D]' : 'bg-slate-300'
+                  } relative`}
               >
-                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${settings.twoFactorAuth ? 'translate-x-6' : 'translate-x-1'
-                  }`}></div>
+                <div className={`w-4 h-4 rounded-full bg-white transition-transform absolute top-1 ${settings.twoFactorAuth ? 'translate-x-6' : 'translate-x-1'
+                  } shadow-sm`} />
               </button>
             </div>
             <div>
-              <p className="text-sm font-semibold text-[#191b23] mb-1">Session Timeout</p>
-              <select className="w-full px-3 py-2 bg-[#faf8ff] border border-[#c3c6d7] rounded-lg text-sm">
+              <p className="text-sm font-semibold text-slate-800 mb-1.5">Session Timeout</p>
+              <select
+                value={settings.sessionTimeout}
+                onChange={(e) => setSettings({ ...settings, sessionTimeout: e.target.value })}
+                className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-[#1A365D]/20 focus:border-[#1A365D] outline-none transition-all"
+              >
                 <option value="15">15 minutes</option>
                 <option value="30">30 minutes</option>
                 <option value="60">1 hour</option>
@@ -139,28 +143,39 @@ const Settings: React.FC = () => {
         </div>
 
         {/* Danger Zone */}
-        <div className="bg-white rounded-xl shadow-sm border border-[#ba1a1a]/20 overflow-hidden">
-          <div className="p-4 border-b border-[#ba1a1a]/20 bg-[#ffdad6]/5">
-            <h3 className="text-sm font-bold text-[#ba1a1a] flex items-center gap-2">
-              <span className="material-symbols-outlined text-base">warning</span>
-              Danger Zone
-            </h3>
+        <div className="bg-white rounded-2xl border border-red-200/40 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-red-100 bg-red-50/30 flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-red-600 text-xl">warning</span>
+            <h2 className="text-sm font-bold text-red-600">Danger Zone</h2>
           </div>
-          <div className="p-4">
-            <button className="w-full py-2.5 border border-[#ba1a1a] text-[#ba1a1a] rounded-lg font-semibold hover:bg-[#ffdad6]/10 transition-colors active:scale-95 text-sm">
+          <div className="p-5">
+            <button
+              className="w-full py-2.5 border border-red-300 text-red-600 rounded-xl font-semibold hover:bg-red-50 transition-colors active:scale-95 text-sm"
+              onClick={() => {
+                if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+                  // Delete account logic (not implemented)
+                  alert('Account deletion is not implemented in this demo.');
+                }
+              }}
+            >
               Delete Account
             </button>
+            <p className="text-xs text-slate-500 mt-2 text-center">This action is irreversible. All your data will be permanently removed.</p>
           </div>
         </div>
-      </div>
 
-      <style>{`
-        .material-symbols-outlined {
-          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-          display: inline-block;
-          line-height: 1;
-        }
-      `}</style>
+        <style>{`
+          .font-display {
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+          }
+          .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+            display: inline-block;
+            line-height: 1;
+          }
+        `}</style>
+      </div>
     </div>
   );
 };

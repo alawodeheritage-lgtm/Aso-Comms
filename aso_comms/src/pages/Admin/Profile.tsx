@@ -63,7 +63,6 @@ const AdminProfile: React.FC = () => {
     department: '',
   });
 
-  // Format currency
   const formatCurrency = (amount: number): string => {
     return `₦${amount.toLocaleString('en-US', {
       minimumFractionDigits: 0,
@@ -71,18 +70,15 @@ const AdminProfile: React.FC = () => {
     })}`;
   };
 
-  // Fetch admin profile data
   const fetchAdminProfile = async () => {
     try {
       setLoading(true);
       console.log('🔄 Fetching admin profile...');
 
-      // Get current user info
       const userResponse = await api.get('/api/current-user');
       const currentUser = userResponse.data.user;
       console.log('👤 Current user:', currentUser);
 
-      // Fetch stats from various endpoints
       const [repairsRes, complaintsRes, expensesRes] = await Promise.all([
         api.get('/repairs'),
         api.get('/complaints'),
@@ -93,20 +89,17 @@ const AdminProfile: React.FC = () => {
       const complaints = complaintsRes.data.complaints || [];
       const expenses = expensesRes.data.expenses || [];
 
-      // Calculate stats
       const resolvedComplaints = complaints.filter((c: any) => c.status === 'Resolved').length;
       const activeRepairs = repairs.filter((r: any) => r.status !== 'Collected' && r.status !== 'Resolved').length;
 
-      // Calculate total revenue from approved expenses
       const totalRevenue = expenses
         .filter((e: any) => e.status === 'approved')
         .reduce((sum: number, e: any) => sum + (e.amount || 0), 0);
 
-      // Build profile data with phone from database
       const profileData: AdminProfileData = {
         name: currentUser?.username || 'Administrator',
         email: currentUser?.email || 'admin@asocomms.com',
-        phone: currentUser?.phoneNumber || 'Not provided', // ✅ Fetched from DB
+        phone: currentUser?.phoneNumber || 'Not provided',
         role: currentUser?.role === 'ceo' ? 'CEO' : currentUser?.role === 'manager' ? 'Manager' : 'Admin',
         department: 'Administration',
         employeeId: `EMP-${Date.now().toString().slice(-6)}`,
@@ -180,7 +173,6 @@ const AdminProfile: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Update user profile via API
       const response = await api.patch('/api/update-profile', {
         username: formData.name,
         email: formData.email,
@@ -230,169 +222,89 @@ const AdminProfile: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#1A365D] border-t-transparent"></div>
           <p className="mt-3 text-sm font-medium text-slate-500">Loading profile...</p>
         </div>
       </div>
     );
   }
 
+  // ============== HUMANIZED UI ==============
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6">
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-blue-600 text-xl sm:text-2xl">
-              admin_panel_settings
-            </span>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Admin Profile
-            </h1>
+            <span className="material-symbols-outlined text-blue-600 text-xl sm:text-2xl">admin_panel_settings</span>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-[#1A365D] tracking-tight">Admin Profile</h1>
           </div>
-          <p className="text-xs sm:text-sm font-medium text-slate-500">
-            Manage administrative credentials, team permissions, and operational settings
-          </p>
+          <p className="text-xs sm:text-sm font-medium text-slate-500">Manage administrative credentials, team permissions, and operational settings.</p>
         </div>
         <div className="flex gap-2 sm:gap-2.5 shrink-0">
           {isEditing ? (
             <>
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-3 sm:px-4 py-1.5 sm:py-2 border border-slate-300 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-colors active:scale-95 text-xs shadow-xs cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 text-xs shadow-xs cursor-pointer"
-              >
-                Save Changes
-              </button>
+              <button type="button" onClick={handleCancel} className="px-3 sm:px-4 py-1.5 sm:py-2 border border-slate-300 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-colors active:scale-95 text-xs shadow-xs">Cancel</button>
+              <button type="button" onClick={handleSave} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#1A365D] text-white rounded-xl font-bold hover:bg-[#2D4A6B] transition-all active:scale-95 text-xs shadow-xs">Save Changes</button>
             </>
           ) : (
-            <button
-              type="button"
-              onClick={() => setIsEditing(true)}
-              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-xl font-bold flex items-center gap-1.5 hover:bg-blue-700 transition-all active:scale-95 text-xs shadow-xs cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-base">edit</span>
-              Edit Profile
+            <button type="button" onClick={() => setIsEditing(true)} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#1A365D] text-white rounded-xl font-bold flex items-center gap-1.5 hover:bg-[#2D4A6B] transition-all active:scale-95 text-xs shadow-xs">
+              <span className="material-symbols-outlined text-base">edit</span> Edit Profile
             </button>
           )}
         </div>
       </div>
 
-      {/* Main Profile Card Container */}
       <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
-        {/* Cover Header */}
-        <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 px-4 sm:px-6 py-6 sm:py-8 text-white">
+        {/* Cover */}
+        <div className="bg-gradient-to-r from-[#1A365D] to-[#2D4A6B] px-4 sm:px-6 py-6 sm:py-8 text-white">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
             <div className="relative shrink-0 self-center sm:self-auto">
               <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-white/20 flex items-center justify-center text-white text-xl sm:text-2xl md:text-3xl font-black border-4 border-white/30 shadow-md">
                 {initials}
               </div>
-              <div
-                className="absolute bottom-0 right-0 bg-blue-500 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-white flex items-center justify-center"
-                title="Verified Admin"
-              >
-                <span className="material-symbols-outlined text-white text-[8px] sm:text-[11px] font-bold">
-                  verified
-                </span>
+              <div className="absolute bottom-0 right-0 bg-blue-500 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-white flex items-center justify-center" title="Verified Admin">
+                <span className="material-symbols-outlined text-white text-[8px] sm:text-[11px] font-bold">verified</span>
               </div>
             </div>
             <div className="space-y-1 text-center sm:text-left">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-2.5">
-                <h2 className="text-lg sm:text-xl md:text-3xl font-extrabold tracking-tight">
-                  {profile.name}
-                </h2>
+                <h2 className="text-lg sm:text-xl md:text-3xl font-display font-extrabold tracking-tight">{profile.name}</h2>
                 <span className="bg-white/20 backdrop-blur-md text-white px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">shield</span>
                   {profile.role}
                 </span>
               </div>
-              <p className="text-blue-100 text-xs sm:text-sm font-medium">
-                {profile.department}
-              </p>
+              <p className="text-blue-100 text-xs sm:text-sm font-medium">{profile.department}</p>
               <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 mt-2 text-blue-200/80 text-[10px] sm:text-[11px] font-semibold">
-                <p className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">badge</span>
-                  {profile.employeeId}
-                </p>
-                <p className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">calendar_month</span>
-                  Joined {profile.joinDate}
-                </p>
-                <p className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">phone</span>
-                  {profile.phone}
-                </p>
+                <p className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">badge</span>{profile.employeeId}</p>
+                <p className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">calendar_month</span>Joined {profile.joinDate}</p>
+                <p className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">phone</span>{profile.phone}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Admin Stats Grid - Removed Team Members, Added Total Revenue */}
+        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 p-3 sm:p-6 border-b border-slate-200/80 bg-slate-50/50">
-          <div className="text-center">
-            <p className="text-lg sm:text-xl md:text-2xl font-black text-blue-600">
-              {profile.stats.complaintsResolved}
-            </p>
-            <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
-              Resolved
-            </p>
-          </div>
-          <div className="text-center md:border-l border-slate-200/80">
-            <p className="text-lg sm:text-xl md:text-2xl font-black text-blue-600">
-              {profile.stats.activeRepairs}
-            </p>
-            <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
-              Active Repairs
-            </p>
-          </div>
-          <div className="text-center border-t md:border-t-0 md:border-l border-slate-200/80 pt-2 md:pt-0">
-            <p className="text-lg sm:text-xl md:text-2xl font-black text-emerald-600">
-              {formatCurrency(profile.stats.totalRevenue)}
-            </p>
-            <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
-              Total Revenue
-            </p>
-          </div>
-          <div className="text-center border-t md:border-t-0 md:border-l border-slate-200/80 pt-2 md:pt-0">
-            <p className="text-lg sm:text-xl md:text-2xl font-black text-emerald-600">
-              {profile.stats.slaCompliance}
-            </p>
-            <p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
-              SLA Compliance
-            </p>
-          </div>
+          <div className="text-center"><p className="text-lg sm:text-xl md:text-2xl font-black text-[#1A365D]">{profile.stats.complaintsResolved}</p><p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">Resolved</p></div>
+          <div className="text-center md:border-l border-slate-200/80"><p className="text-lg sm:text-xl md:text-2xl font-black text-[#1A365D]">{profile.stats.activeRepairs}</p><p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">Active Repairs</p></div>
+          <div className="text-center border-t md:border-t-0 md:border-l border-slate-200/80 pt-2 md:pt-0"><p className="text-lg sm:text-xl md:text-2xl font-black text-emerald-600">{formatCurrency(profile.stats.totalRevenue)}</p><p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">Total Revenue</p></div>
+          <div className="text-center border-t md:border-t-0 md:border-l border-slate-200/80 pt-2 md:pt-0"><p className="text-lg sm:text-xl md:text-2xl font-black text-emerald-600">{profile.stats.slaCompliance}</p><p className="text-[8px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">SLA Compliance</p></div>
         </div>
 
-        {/* Form / Details Section */}
+        {/* Personal Information */}
         <div className="p-3 sm:p-6">
           <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 sm:mb-4 flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-blue-600 text-base">badge</span>
-            Professional Information
+            <span className="material-symbols-outlined text-blue-600 text-base">badge</span> Professional Information
           </h3>
 
           {isEditing ? (
             /* Edit Mode */
             <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
-                  Full Name
-                </label>
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">Full Name</label>
                 <input
                   type="text"
                   required
@@ -401,11 +313,8 @@ const AdminProfile: React.FC = () => {
                   className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
                 />
               </div>
-
               <div>
-                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
-                  Email Address
-                </label>
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">Email Address</label>
                 <input
                   type="email"
                   required
@@ -414,11 +323,8 @@ const AdminProfile: React.FC = () => {
                   className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
                 />
               </div>
-
               <div>
-                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
-                  Phone Number
-                </label>
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">Phone Number</label>
                 <input
                   type="tel"
                   required
@@ -427,11 +333,8 @@ const AdminProfile: React.FC = () => {
                   className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
                 />
               </div>
-
               <div>
-                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
-                  Role Title
-                </label>
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">Role Title</label>
                 <input
                   type="text"
                   required
@@ -440,11 +343,8 @@ const AdminProfile: React.FC = () => {
                   className="w-full px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-xs sm:text-sm font-semibold text-slate-800"
                 />
               </div>
-
               <div className="sm:col-span-2">
-                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">
-                  Department
-                </label>
+                <label className="block text-[10px] sm:text-xs font-bold text-slate-700 mb-1">Department</label>
                 <input
                   type="text"
                   required
@@ -458,57 +358,28 @@ const AdminProfile: React.FC = () => {
             /* View Mode */
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
               <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-200/60">
-                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  Full Name
-                </p>
-                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
-                  {profile.name}
-                </p>
+                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Full Name</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">{profile.name}</p>
               </div>
-
               <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-200/60">
-                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  Email
-                </p>
-                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5 truncate">
-                  {profile.email}
-                </p>
+                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Email</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5 truncate">{profile.email}</p>
               </div>
-
               <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-200/60">
-                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  Phone
-                </p>
-                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
-                  {profile.phone}
-                </p>
+                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Phone</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">{profile.phone}</p>
               </div>
-
               <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-200/60">
-                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  Role
-                </p>
-                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
-                  {profile.role}
-                </p>
+                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Role</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">{profile.role}</p>
               </div>
-
               <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-200/60">
-                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  Department
-                </p>
-                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
-                  {profile.department}
-                </p>
+                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Department</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">{profile.department}</p>
               </div>
-
               <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-200/60">
-                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  Employee ID
-                </p>
-                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
-                  {profile.employeeId}
-                </p>
+                <p className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Employee ID</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">{profile.employeeId}</p>
               </div>
             </div>
           )}
@@ -517,8 +388,7 @@ const AdminProfile: React.FC = () => {
         {/* Permissions */}
         <div className="p-3 sm:p-6 border-t border-slate-200/80 bg-slate-50/30">
           <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 sm:mb-3 flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-blue-600 text-base">lock</span>
-            Assigned System Permissions
+            <span className="material-symbols-outlined text-blue-600 text-base">lock</span> Assigned System Permissions
           </h3>
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {profile.permissions.map((permission, index) => (
@@ -536,8 +406,7 @@ const AdminProfile: React.FC = () => {
         {/* Recent Activity */}
         <div className="p-3 sm:p-6 border-t border-slate-200/80">
           <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 sm:mb-4 flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-blue-600 text-base">history</span>
-            Recent System Activity
+            <span className="material-symbols-outlined text-blue-600 text-base">history</span> Recent System Activity
           </h3>
           <div className="space-y-2 sm:space-y-3">
             {profile.recentActivity.map((activity) => (
@@ -548,9 +417,7 @@ const AdminProfile: React.FC = () => {
                   <span className="material-symbols-outlined text-sm sm:text-base">{activity.icon}</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] sm:text-xs md:text-sm font-semibold text-slate-800">
-                    {activity.action}
-                  </p>
+                  <p className="text-[11px] sm:text-xs md:text-sm font-semibold text-slate-800">{activity.action}</p>
                   <p className="text-[9px] sm:text-[11px] font-bold text-slate-400">{activity.date}</p>
                 </div>
               </div>
@@ -563,7 +430,7 @@ const AdminProfile: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-2.5">
             <Link
               to="/admin/repairs"
-              className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 text-white py-2 sm:py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 text-[10px] sm:text-xs shadow-xs"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-[#1A365D] text-white py-2 sm:py-2.5 rounded-xl font-bold hover:bg-[#2D4A6B] transition-all active:scale-95 text-[10px] sm:text-xs shadow-xs"
             >
               <span className="material-symbols-outlined text-base">build</span>
               Manage Repairs
@@ -571,7 +438,7 @@ const AdminProfile: React.FC = () => {
 
             <Link
               to="/admin/complaints"
-              className="flex-1 flex items-center justify-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 py-2 sm:py-2.5 rounded-xl font-bold hover:bg-blue-100 transition-colors active:scale-95 text-[10px] sm:text-xs"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-[#D97706]/10 text-[#D97706] border border-[#D97706]/30 py-2 sm:py-2.5 rounded-xl font-bold hover:bg-[#D97706]/20 transition-colors active:scale-95 text-[10px] sm:text-xs"
             >
               <span className="material-symbols-outlined text-base">chat</span>
               Resolve Complaints
@@ -589,9 +456,14 @@ const AdminProfile: React.FC = () => {
       </div>
 
       <style>{`
+        .font-display {
+          font-family: 'Space Grotesk', system-ui, sans-serif;
+        }
         .material-symbols-outlined {
           font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
           vertical-align: middle;
+          display: inline-block;
+          line-height: 1;
         }
         .animate-spin {
           animation: spin 1s linear infinite;

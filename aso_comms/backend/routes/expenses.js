@@ -11,14 +11,14 @@ const { isLoggedIn, isStaff } = require('../middleware');
 // ==========================================
 router.get('/', isLoggedIn, isStaff, async (req, res) => {
     try {
-        console.log('📋 FETCHING EXPENSES');
-        console.log('👤 User:', req.user?.username || 'Unknown');
+        // console.log('📋 FETCHING EXPENSES');
+        // console.log('👤 User:', req.user?.username || 'Unknown');
 
         const expenses = await Expense.find({})
             .populate('loggedBy', 'username email')
             .sort({ dateLogged: -1, createdAt: -1 });
 
-        console.log(`📊 Found ${expenses.length} expenses`);
+        // console.log(`📊 Found ${expenses.length} expenses`);
 
         res.json({
             success: true,
@@ -26,7 +26,7 @@ router.get('/', isLoggedIn, isStaff, async (req, res) => {
             expenses: expenses
         });
     } catch (error) {
-        console.error('❌ Error fetching expenses:', error);
+        // console.error('❌ Error fetching expenses:', error);
         res.status(500).json({
             success: false,
             error: error.message || 'Failed to fetch expenses'
@@ -39,11 +39,11 @@ router.get('/', isLoggedIn, isStaff, async (req, res) => {
 // ==========================================
 router.post('/', isLoggedIn, isStaff, async (req, res) => {
     try {
-        console.log('========================================');
-        console.log('📝 CREATE EXPENSE REQUEST');
-        console.log('👤 User:', req.user?.username || 'Unknown');
-        console.log('📦 Request Body:', JSON.stringify(req.body, null, 2));
-        console.log('========================================');
+        // console.log('========================================');
+        // console.log('📝 CREATE EXPENSE REQUEST');
+        // console.log('👤 User:', req.user?.username || 'Unknown');
+        // console.log('📦 Request Body:', JSON.stringify(req.body, null, 2));
+        // console.log('========================================');
 
         const { description, amount, category, notes } = req.body;
 
@@ -64,15 +64,15 @@ router.post('/', isLoggedIn, isStaff, async (req, res) => {
             status: 'pending'
         });
 
-        console.log('💾 Saving expense to database...');
+        // console.log('💾 Saving expense to database...');
         await newExpense.save();
 
         // Populate loggedBy for response
         await newExpense.populate('loggedBy', 'username email');
 
-        console.log('✅ Expense saved successfully!');
-        console.log('🆔 Expense ID:', newExpense._id);
-        console.log('========================================');
+        // console.log('✅ Expense saved successfully!');
+        // console.log('🆔 Expense ID:', newExpense._id);
+        // console.log('========================================');
 
         res.status(201).json({
             success: true,
@@ -97,10 +97,10 @@ router.patch('/:id/status', isLoggedIn, isStaff, async (req, res) => {
         const { id } = req.params;
         const { status } = req.body;
 
-        console.log('📝 UPDATE EXPENSE STATUS');
-        console.log('🆔 Expense ID:', id);
-        console.log('📊 New Status:', status);
-        console.log('👤 User:', req.user?.username || 'Unknown');
+        // console.log('📝 UPDATE EXPENSE STATUS');
+        // console.log('🆔 Expense ID:', id);
+        // console.log('📊 New Status:', status);
+        // console.log('👤 User:', req.user?.username || 'Unknown');
 
         if (!['pending', 'approved', 'rejected'].includes(status)) {
             return res.status(400).json({
@@ -122,7 +122,7 @@ router.patch('/:id/status', isLoggedIn, isStaff, async (req, res) => {
             });
         }
 
-        console.log('✅ Expense status updated to:', status);
+        // console.log('✅ Expense status updated to:', status);
 
         res.json({
             success: true,
@@ -145,9 +145,9 @@ router.patch('/:id/status', isLoggedIn, isStaff, async (req, res) => {
 router.delete('/:id', isLoggedIn, isStaff, async (req, res) => {
     try {
         const { id } = req.params;
-        console.log('🗑️ DELETE EXPENSE');
-        console.log('🆔 Expense ID:', id);
-        console.log('👤 User:', req.user?.username || 'Unknown');
+        // console.log('🗑️ DELETE EXPENSE');
+        // console.log('🆔 Expense ID:', id);
+        // console.log('👤 User:', req.user?.username || 'Unknown');
 
         const expense = await Expense.findByIdAndDelete(id);
 
@@ -158,7 +158,7 @@ router.delete('/:id', isLoggedIn, isStaff, async (req, res) => {
             });
         }
 
-        console.log('✅ Expense deleted successfully');
+        // console.log('✅ Expense deleted successfully');
 
         res.json({
             success: true,

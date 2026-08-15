@@ -91,7 +91,7 @@ const RepairSchema = new Schema({
 // Pre-save hook
 RepairSchema.pre('save', async function () {
   try {
-    console.log('🔧 Pre-save hook triggered for repair:', this.customerName);
+    // console.log('🔧 Pre-save hook triggered for repair:', this.customerName);
 
     // 1. Calculate Financial States
     if (this.financials) {
@@ -109,12 +109,12 @@ RepairSchema.pre('save', async function () {
         this.financials.paymentStatus = 'Paid in Full';
       }
 
-      console.log('💰 Financials:', {
-        totalEstimate: this.financials.totalEstimate,
-        amountPaid: this.financials.amountPaid,
-        balanceDue: this.financials.balanceDue,
-        paymentStatus: this.financials.paymentStatus
-      });
+      //    console.log('💰 Financials:', {
+      //   totalEstimate: this.financials.totalEstimate,
+      //     amountPaid: this.financials.amountPaid,
+      //       balanceDue: this.financials.balanceDue,
+      //         paymentStatus: this.financials.paymentStatus
+      // });
     }
 
     // 2. Generate Ticket ID if new
@@ -122,11 +122,11 @@ RepairSchema.pre('save', async function () {
       const year = new Date().getFullYear();
       const randomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
       this.ticketId = `ASO-${year}-${randomCode}`;
-      console.log('🎫 Generated Ticket ID:', this.ticketId);
+      // console.log('🎫 Generated Ticket ID:', this.ticketId);
     }
 
   } catch (error) {
-    console.error('❌ Error in pre-save hook:', error);
+    // console.error('❌ Error in pre-save hook:', error);
     throw error;
   }
 });

@@ -6,13 +6,15 @@ const Expense = require('../models/expense');
 const ExpressError = require('../utils/ExpressError');
 const catchAsync = require('../utils/catchAsync');
 const { isLoggedIn, isStaff, validateRepair } = require('../middleware');
+const User = require('../models/user');
+
 
 // ==========================================
 // GET ALL REPAIRS
 // ==========================================
 router.get('/', isLoggedIn, catchAsync(async (req, res) => {
-    console.log('📋 FETCH REPAIRS REQUEST');
-    console.log('📧 User:', req.user?.username || 'Unknown');
+    // console.log('📋 FETCH REPAIRS REQUEST');
+    // console.log('📧 User:', req.user?.username || 'Unknown');
 
     const { status } = req.query;
     let query = {};
@@ -29,11 +31,11 @@ router.get('/', isLoggedIn, catchAsync(async (req, res) => {
         .populate('owner', 'username email')
         .sort({ dateLogged: -1, createdAt: -1 });
 
-    console.log(`📊 Found ${repairs.length} repairs`);
+    // console.log(`📊 Found ${repairs.length} repairs`);
 
     // Log images for debugging
     repairs.forEach((repair, index) => {
-        console.log(`📸 Repair ${index + 1} (${repair.ticketId}): images =`, repair.images);
+        // console.log(`📸 Repair ${index + 1} (${repair.ticketId}): images =`, repair.images);
     });
 
     res.json({
@@ -46,21 +48,29 @@ router.get('/', isLoggedIn, catchAsync(async (req, res) => {
 // ==========================================
 // CREATE NEW REPAIR - FIXED
 // ==========================================
+// routes/repairs.js – POST /repairs
 router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
     try {
-        console.log('========================================');
-        console.log('📝 CREATE REPAIR REQUEST');
-        console.log('📧 User:', req.user?.username || 'Unknown');
-        console.log('📦 Request Body:', JSON.stringify(req.body, null, 2));
-        console.log('========================================');
+        const { images, customerEmail, phoneNumber, customerName } = req.body;
 
-        // ✅ Extract images from request body
-        const { images } = req.body;
-        console.log('📸 Images received in backend:', images);
-        console.log('📸 Images type:', typeof images);
-        console.log('📸 Is array:', Array.isArray(images));
+        // ✅ Find existing user by email or phone
+        let ownerId = null;
+        if (customerEmail || phoneNumber) {
+            const existingUser = await User.findOne({
+                $or: [
+                    { email: customerEmail?.toLowerCase() },
+                    { phoneNumber: phoneNumber }
+                ]
+            });
+            if (existingUser) {
+                ownerId = existingUser._id;
+                console.log(`🔗 Repair linked to existing user: ${existingUser.email}`);
+            } else {
+                console.log('⚠️ No existing user found – owner will be null.');
+            }
+        }
 
-        // Create repair data WITH images
+        // Create repair data
         const repairData = {
             customerName: req.body.customerName,
             phoneNumber: req.body.phoneNumber,
@@ -74,49 +84,21 @@ router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
                 totalEstimate: req.body.financials?.totalEstimate || 0,
                 amountPaid: req.body.financials?.amountPaid || 0,
             },
-            owner: req.user._id,
-            images: images || [] // ✅ Add images to repairData
+            owner: ownerId,                     // ✅ Set to customer ID if found, else null
+            images: images || []
         };
 
-        console.log('📦 Processed Repair Data with images:', JSON.stringify(repairData, null, 2));
-
         const newRepair = new Repair(repairData);
-
-        console.log('💾 Saving to database...');
-        console.log('📸 Images being saved:', newRepair.images);
-
-        // Save with error handling
-        try {
-            await newRepair.save();
-        } catch (saveError) {
-            console.error('❌ Save error:', saveError);
-            return res.status(400).json({
-                success: false,
-                error: saveError.message || 'Failed to save repair'
-            });
-        }
-
-        console.log('✅ Repair saved successfully!');
-        console.log('🎫 Ticket ID:', newRepair.ticketId);
-        console.log('🆔 Repair ID:', newRepair._id);
-        console.log('📸 Saved images:', newRepair.images);
-        console.log('========================================');
+        await newRepair.save();
 
         res.status(201).json({
             success: true,
-            message: `Repair created successfully with ticket ${newRepair.ticketId}`,
+            message: `Repair created with ticket ${newRepair.ticketId}`,
             repair: newRepair
         });
-
     } catch (error) {
         console.error('❌ Error creating repair:', error);
-        console.error('❌ Error stack:', error.stack);
-
-        res.status(500).json({
-            success: false,
-            error: error.message || 'Failed to create repair',
-            details: error.stack
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -229,7 +211,7 @@ router.patch('/:id/status', isLoggedIn, isStaff, async (req, res, next) => {
         });
 
     } catch (error) {
-        console.error('❌ Error updating status:', error);
+        // console.error('❌ Error updating status:', error);
         next(error);
     }
 });
@@ -255,7 +237,7 @@ router.delete('/:id', isLoggedIn, isStaff, async (req, res, next) => {
         });
 
     } catch (error) {
-        console.error('❌ Error deleting repair:', error);
+        // console.error('❌ Error deleting repair:', error);
         next(error);
     }
 });

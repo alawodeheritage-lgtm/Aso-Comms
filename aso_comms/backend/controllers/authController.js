@@ -12,11 +12,11 @@ const generateOTPData = () => {
 module.exports.sendNewOTP = async (req, res) => {
     try {
         const { email, purpose } = req.body;
-        console.log('========================================');
-        console.log('📧 SEND NEW OTP CALLED');
-        console.log('📧 Email:', email);
-        console.log('📧 Purpose:', purpose);
-        console.log('========================================');
+        // console.log('========================================');
+        // console.log('📧 SEND NEW OTP CALLED');
+        // console.log('📧 Email:', email);
+        // console.log('📧 Purpose:', purpose);
+        // console.log('========================================');
 
         const user = await User.findOne({ email });
 
@@ -30,11 +30,11 @@ module.exports.sendNewOTP = async (req, res) => {
         user.otpExpires = otpExpires;
         await user.save();
 
-        console.log('========================================');
-        console.log('🔑 OTP GENERATED');
-        console.log('📧 Email:', email);
-        console.log('🔑 Code:', otp);
-        console.log('========================================');
+        // console.log('========================================');
+        // console.log('🔑 OTP GENERATED');
+        // console.log('📧 Email:', email);
+        // console.log('🔑 Code:', otp);
+        // console.log('========================================');
 
         const emailType = purpose === 'staff' ? 'signup' : purpose;
         await sendOTPEmail({ email: user.email, otp, type: emailType });
@@ -52,12 +52,12 @@ module.exports.sendNewOTP = async (req, res) => {
 module.exports.verifyOTP = async (req, res, next) => {
     try {
         const { email, otp, purpose } = req.body;
-        console.log('========================================');
-        console.log('🔑 VERIFY OTP CALLED');
-        console.log('📧 Email:', email);
-        console.log('🔑 Entered OTP:', otp);
-        console.log('📧 Purpose:', purpose);
-        console.log('========================================');
+        // console.log('========================================');
+        // console.log('🔑 VERIFY OTP CALLED');
+        // console.log('📧 Email:', email);
+        // console.log('🔑 Entered OTP:', otp);
+        // console.log('📧 Purpose:', purpose);
+        // console.log('========================================');
 
         const user = await User.findOne({ email });
 
@@ -66,8 +66,8 @@ module.exports.verifyOTP = async (req, res, next) => {
             return res.redirect('/login');
         }
 
-        console.log('📧 Stored OTP:', user.otpCode);
-        console.log('⏰ Stored Expiry:', user.otpExpires);
+        // console.log('📧 Stored OTP:', user.otpCode);
+        // console.log('⏰ Stored Expiry:', user.otpExpires);
 
         if (!user.otpCode || user.otpCode !== otp || user.otpExpires < Date.now()) {
             req.flash('error', 'Invalid or expired verification code.');
@@ -94,7 +94,7 @@ module.exports.verifyOTP = async (req, res, next) => {
             await user.save();
 
             req.flash('success', 'Staff account successfully verified and activated!');
-            
+
             if (req.user) {
                 return res.redirect('/dashboard');
             }
@@ -125,11 +125,11 @@ module.exports.verifyOTP = async (req, res, next) => {
 module.exports.resendOTP = async (req, res) => {
     try {
         const { email, purpose } = req.body;
-        console.log('========================================');
-        console.log('📧 RESEND OTP CALLED');
-        console.log('📧 Email:', email);
-        console.log('📧 Purpose:', purpose);
-        console.log('========================================');
+        // console.log('========================================');
+        // console.log('📧 RESEND OTP CALLED');
+        // console.log('📧 Email:', email);
+        // console.log('📧 Purpose:', purpose);
+        // console.log('========================================');
 
         const user = await User.findOne({ email });
 
@@ -143,11 +143,11 @@ module.exports.resendOTP = async (req, res) => {
         user.otpExpires = otpExpires;
         await user.save();
 
-        console.log('========================================');
-        console.log('🔑 OTP RESENT');
-        console.log('📧 Email:', email);
-        console.log('🔑 New Code:', otp);
-        console.log('========================================');
+        // console.log('========================================');
+        // console.log('🔑 OTP RESENT');
+        // console.log('📧 Email:', email);
+        // console.log('🔑 New Code:', otp);
+        // console.log('========================================');
 
         const emailType = purpose === 'staff' ? 'signup' : purpose;
         await sendOTPEmail({ email: user.email, otp, type: emailType });

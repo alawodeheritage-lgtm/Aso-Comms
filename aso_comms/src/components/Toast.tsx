@@ -13,37 +13,31 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 3000 }
     const timer = setTimeout(() => {
       onClose();
     }, duration);
-
     return () => clearTimeout(timer);
   }, [duration, onClose]);
 
   const getStyles = () => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 border-green-500 text-green-800';
+        return 'border-emerald-500 bg-emerald-50 text-emerald-800';
       case 'error':
-        return 'bg-red-50 border-red-500 text-red-800';
+        return 'border-red-500 bg-red-50 text-red-800';
       case 'warning':
-        return 'bg-amber-50 border-amber-500 text-amber-800';
+        return 'border-amber-500 bg-amber-50 text-amber-800';
       case 'info':
-        return 'bg-blue-50 border-blue-500 text-blue-800';
+        return 'border-[#1A365D] bg-blue-50 text-[#1A365D]';
       default:
-        return 'bg-slate-50 border-slate-500 text-slate-800';
+        return 'border-slate-500 bg-slate-50 text-slate-800';
     }
   };
 
   const getIcon = () => {
     switch (type) {
-      case 'success':
-        return 'check_circle';
-      case 'error':
-        return 'error';
-      case 'warning':
-        return 'warning';
-      case 'info':
-        return 'info';
-      default:
-        return 'info';
+      case 'success': return 'check_circle';
+      case 'error': return 'error';
+      case 'warning': return 'warning';
+      case 'info': return 'info';
+      default: return 'info';
     }
   };
 

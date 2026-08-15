@@ -12,18 +12,12 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
   const navigate = useNavigate();
   const { logout, user, isLoading } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Debug logging
   useEffect(() => {
-    console.log('🔍 Sidebar Debug:');
-    console.log('  user:', user);
-    console.log('  userType prop:', userType);
-    console.log('  isLoading:', isLoading);
-    console.log('  current path:', location.pathname);
-  }, [user, userType, isLoading, location.pathname]);
+    setIsMobileOpen(false);
+  }, [location.pathname]);
 
-  // Hide sidebar on landing page, auth pages, track, and profile
   const hideSidebar = location.pathname === '/' ||
     location.pathname === '/login' ||
     location.pathname === '/register' ||
@@ -32,50 +26,37 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
     location.pathname === '/verify-otp' ||
     location.pathname === '/track' ||
     location.pathname.startsWith('/track/') ||
-    location.pathname.startsWith('/profile/');
+    location.pathname.startsWith('/profile/') ||
+    location.pathname === '/support' ||
+    location.pathname === '/contact' ||
+    location.pathname === '/privacy' ||
+    location.pathname === '/terms';
 
   if (hideSidebar) return null;
 
-  // Wait for user to load
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
-      <aside className="fixed md:relative z-40 bg-white border-r border-[#e1e2ed]/50 shadow-sm w-64 h-[calc(100vh-4rem)] overflow-y-auto pt-4">
+      <aside className="fixed md:relative z-40 bg-white border-r border-slate-200/80 shadow-sm w-64 h-[calc(100vh-4rem)] overflow-y-auto pt-4">
         <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#004ac6] border-t-transparent"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#1A365D] border-t-transparent"></div>
         </div>
       </aside>
     );
   }
 
-  // If no user, show nothing
-  if (!user) {
-    console.warn('⚠️ No user found in Sidebar');
-    return null;
-  }
-
-  const isActive = (path: string) => {
-    if (path === '/admin') {
-      return location.pathname === '/admin';
-    }
-    return location.pathname === path || location.pathname.startsWith(path + '/');
-  };
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   const userRole = user?.role || userType || 'customer';
   const isAdmin = userRole === 'manager' || userRole === 'ceo';
   const isCEO = userRole === 'ceo';
 
-  console.log('🔍 Sidebar Role Check:', {
-    userRole,
-    isAdmin,
-    isCEO,
-    user: user?.username
-  });
-
   const customerLinks = [
     { path: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
     { path: '/complaints', icon: 'report_problem', label: 'My Complaints' },
     { path: '/complaints/new', icon: 'add_circle', label: 'Lodge Complaint' },
-    { path: '/profile', icon: 'person', label: 'My Profile' }
+    { path: '/profile', icon: 'person', label: 'My Profile' },
+    { path: '/notifications', icon: 'notifications', label: 'Notifications' },
+    { path: '/settings', icon: 'settings', label: 'Settings' },
   ];
 
   const adminLinks = [
@@ -92,13 +73,11 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
-
     setIsLoggingOut(true);
     try {
       await logout();
       navigate('/login');
     } catch (error) {
-      console.error('Logout failed:', error);
       navigate('/login');
     } finally {
       setIsLoggingOut(false);
@@ -109,61 +88,75 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
     <>
       {/* Mobile Hamburger */}
       <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="md:hidden fixed bottom-20 right-4 z-50 bg-[#004ac6] text-white p-3 rounded-full shadow-lg"
+        onClick={() => setIsMobileOpen(!isMobileOpen)}
+        className="md:hidden fixed bottom-6 right-6 z-50 bg-[#1A365D] text-white p-3.5 rounded-full shadow-lg shadow-[#1A365D]/25 hover:bg-[#2D4A6B] transition-colors active:scale-95"
+        aria-label="Toggle menu"
       >
-        <span className="material-symbols-outlined">
-          {isCollapsed ? 'menu_open' : 'menu'}
+        <span className="material-symbols-outlined text-2xl">
+          {isMobileOpen ? 'close' : 'menu'}
         </span>
       </button>
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:relative z-40 bg-white border-r border-[#e1e2ed]/50 shadow-sm transition-all duration-300 ${isCollapsed ? 'left-0' : '-left-64 md:left-0'
-          } w-64 h-[calc(100vh-4rem)] overflow-y-auto pt-4`}
+        className={`
+          fixed md:relative z-40 bg-white border-r border-slate-200/80 shadow-sm
+          transition-all duration-300 ease-in-out
+          ${isMobileOpen ? 'left-0' : '-left-64 md:left-0'}
+          w-64 h-[calc(100vh-4rem)] overflow-y-auto flex flex-col
+        `}
       >
-        <div className="px-4 pb-4 border-b border-[#e1e2ed]/20">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-[#dbe1ff] flex items-center justify-center text-[#004ac6] font-bold text-sm">
-              {isAdmin ? (isCEO ? 'CEO' : 'AD') : user?.username?.charAt(0)?.toUpperCase() || 'U'}
+        {/* User Profile – stays at top */}
+        <div className="px-4 pb-4 border-b border-slate-200/60 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1A365D] to-[#2D4A6B] flex items-center justify-center text-white font-bold text-sm shadow-sm">
+              {isAdmin ? (isCEO ? 'C' : 'A') : user?.username?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            <div>
-              <p className="text-sm font-bold text-[#191b23]">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-[#1A365D] truncate">
                 {isAdmin ? (isCEO ? 'CEO' : 'Administrator') : user?.username || 'User'}
               </p>
-              <p className="text-[10px] text-[#434655] capitalize">
+              <p className="text-[10px] text-slate-500 capitalize">
                 {isAdmin ? (isCEO ? 'CEO' : 'Admin') : user?.role || 'Customer'}
               </p>
             </div>
           </div>
         </div>
 
-        <nav className="px-3 py-4 space-y-1">
+        {/* Navigation – grows to fill space */}
+        <nav className="px-3 py-4 space-y-1 flex-1 overflow-y-auto">
           {links.map((link) => (
             <Link
               key={link.path}
               to={link.path}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(link.path)
-                  ? 'bg-[#dbe1ff] text-[#004ac6]'
-                  : 'text-[#434655] hover:bg-[#f3f3fe] hover:text-[#004ac6]'
-                }`}
-              onClick={() => setIsCollapsed(false)}
+              className={`
+                flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
+                ${isActive(link.path)
+                  ? 'bg-[#1A365D]/10 text-[#1A365D] shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-[#1A365D]'
+                }
+              `}
+              onClick={() => setIsMobileOpen(false)}
             >
               <span className="material-symbols-outlined text-base">{link.icon}</span>
               {link.label}
+              {isActive(link.path) && (
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#1A365D]" />
+              )}
             </Link>
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#e1e2ed]/20 bg-white">
+        {/* Logout – pushed to bottom with mt-auto */}
+        <div className="p-4 border-t border-slate-200/60 bg-white/80 backdrop-blur-sm shrink-0 mt-auto">
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#ba1a1a] hover:bg-[#ffdad6]/20 transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoggingOut ? (
               <>
-                <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+                <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
                 Logging out...
               </>
             ) : (
@@ -177,12 +170,28 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
       </aside>
 
       {/* Overlay for mobile */}
-      {isCollapsed && (
+      {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-black/20 z-30 md:hidden"
-          onClick={() => setIsCollapsed(false)}
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 md:hidden"
+          onClick={() => setIsMobileOpen(false)}
         />
       )}
+
+      <style>{`
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+          vertical-align: middle;
+          display: inline-block;
+          line-height: 1;
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </>
   );
 };

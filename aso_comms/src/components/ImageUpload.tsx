@@ -25,7 +25,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   const [images, setImages] = useState<any[]>(existingImages);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync when existingImages changes (e.g., when editing a repair)
   useEffect(() => {
     setImages(existingImages);
   }, [existingImages]);
@@ -51,9 +50,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
     try {
       const response = await api.post('/uploads/multiple', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -64,10 +61,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
       if (response.data.success) {
         const newImages = response.data.files;
-        // ✅ Use functional update to get the latest state
         setImages(prev => {
           const updated = [...prev, ...newImages];
-          // ✅ Call the parent callback with the merged list
           onUploadComplete(updated);
           return updated;
         });
@@ -86,7 +81,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
   const handleRemove = async (index: number) => {
     const imageToRemove = images[index];
-
     if (imageToRemove.publicId) {
       try {
         await api.delete(`/uploads/${imageToRemove.publicId}`);
@@ -94,11 +88,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         console.error('Failed to delete image:', err);
       }
     }
-
     const updatedImages = images.filter((_, i) => i !== index);
     setImages(updatedImages);
     onUploadComplete(updatedImages);
-
     if (onRemove && imageToRemove.publicId) {
       onRemove(imageToRemove.publicId);
     }
@@ -107,7 +99,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   return (
     <div className="space-y-3">
       <div
-        className={`border-2 border-dashed rounded-xl p-4 sm:p-6 text-center transition-all ${uploading ? 'border-blue-300 bg-blue-50/50' : 'border-slate-300 hover:border-blue-400 hover:bg-blue-50/30'
+        className={`border-2 border-dashed rounded-2xl p-4 sm:p-6 text-center transition-all ${uploading ? 'border-[#1A365D] bg-[#1A365D]/5' : 'border-slate-300 hover:border-[#1A365D]/40 hover:bg-[#1A365D]/5'
           }`}
       >
         <input
@@ -120,15 +112,12 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           className="hidden"
           id="file-upload"
         />
-
         <label
           htmlFor="file-upload"
           className={`cursor-pointer flex flex-col items-center gap-2 ${images.length >= maxFiles ? 'opacity-50 cursor-not-allowed' : ''
             }`}
         >
-          <span className="material-symbols-outlined text-3xl text-slate-400">
-            cloud_upload
-          </span>
+          <span className="material-symbols-outlined text-4xl text-slate-400">cloud_upload</span>
           <div>
             <p className="text-sm font-semibold text-slate-700">
               {uploading ? 'Uploading...' : 'Click or drag to upload'}
@@ -145,7 +134,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           <div className="mt-3">
             <div className="w-full bg-slate-200 rounded-full h-2">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                className="bg-[#1A365D] h-2 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               />
             </div>
@@ -165,11 +154,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
               <img
                 src={image.url}
                 alt={`Upload ${index + 1}`}
-                className="w-full h-24 sm:h-28 object-cover rounded-lg border border-slate-200"
+                className="w-full h-24 sm:h-28 object-cover rounded-xl border border-slate-200"
               />
               <button
                 onClick={() => handleRemove(index)}
-                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <span className="material-symbols-outlined text-sm">close</span>
               </button>

@@ -217,264 +217,230 @@ const ComplaintResolution: React.FC = () => {
   }
 
   const isResolved = complaint.status === 'Resolved';
-
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+    <div className="min-h-screen bg-[#F8F6F1] font-sans text-slate-700">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Header */}
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-11 w-11 items-center justify-center rounded-xl text-white shadow-sm"
+              style={{ backgroundColor: NAVY }}
+            >
+              <span className="material-symbols-outlined" aria-hidden>
+                admin_panel_settings
+              </span>
+            </div>
+            <div>
+              <h1 className="font-display text-2xl font-bold tracking-tight text-[#1A365D]">Admin Dashboard</h1>
+              <p className="text-sm text-slate-500">Overview of operations & finances</p>
+            </div>
+          </div>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <button
-            onClick={() => navigate('/admin/complaints')}
-            className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-1"
+          <div
+            className="inline-flex items-center gap-1 rounded-xl border border-slate-200/80 bg-white p-1 shadow-sm"
+            role="group"
+            aria-label="Time range filter"
           >
-            <span className="material-symbols-outlined text-base">arrow_back</span>
-            Back to Complaints
-          </button>
-          <h1 className="text-2xl font-bold text-slate-900">Complaint Resolution</h1>
-          <p className="text-sm text-slate-500">Ticket #{complaint.ticketId}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(complaint.status)}`}>
-            {complaint.status}
-          </span>
-          <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getSeverityColor(complaint.severity)}`}>
-            {complaint.severity}
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Complaint Details */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80">
-            <h2 className="text-sm font-bold text-slate-700 mb-4">Complaint Details</h2>
-
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Subject</p>
-                <p className="text-base font-bold text-slate-800">{complaint.subject}</p>
-              </div>
-
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Description</p>
-                <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200/60">
-                  {complaint.description}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Category</p>
-                  <p className="text-sm font-medium text-slate-700">{complaint.category}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Customer</p>
-                  <p className="text-sm font-medium text-slate-700">{complaint.customerName}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Phone</p>
-                  <p className="text-sm font-medium text-slate-700">{complaint.customerPhone}</p>
-                </div>
-                {complaint.repair && (
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Repair Ticket</p>
-                    <p className="text-sm font-medium text-slate-700">{complaint.repair.ticketId}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Submitted</p>
-                  <p className="text-sm font-medium text-slate-700">{formatDate(complaint.createdAt)}</p>
-                </div>
-                {complaint.resolvedAt && (
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Resolved At</p>
-                    <p className="text-sm font-medium text-slate-700">{formatDate(complaint.resolvedAt)}</p>
-                  </div>
-                )}
-              </div>
-
-              {complaint.resolvedBy && (
-                <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
-                  <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Resolved By</p>
-                  <p className="text-sm font-medium text-slate-700">{complaint.resolvedBy.username}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Status History */}
-          {complaint.statusHistory && complaint.statusHistory.length > 0 && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200/80">
-              <h2 className="text-sm font-bold text-slate-700 mb-4">Status History</h2>
-              <div className="space-y-3">
-                {complaint.statusHistory.map((entry, index) => (
-                  <div key={index} className="flex items-start gap-3 border-b border-slate-100 last:border-0 pb-3 last:pb-0">
-                    <div className={`w-2 h-2 rounded-full mt-1.5 ${entry.status === 'Resolved' ? 'bg-emerald-500' :
-                        entry.status === 'Open' ? 'bg-blue-500' :
-                          entry.status === 'Under Review' ? 'bg-amber-500' : 'bg-red-500'
-                      }`} />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-slate-800">{entry.status}</span>
-                        <span className="text-xs text-slate-400">{formatDate(entry.changedAt)}</span>
-                      </div>
-                      {entry.notes && (
-                        <p className="text-xs text-slate-500 mt-0.5">{entry.notes}</p>
-                      )}
-                      {entry.changedBy && (
-                        <p className="text-[10px] text-slate-400 mt-0.5">By: {entry.changedBy.username}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Sidebar - Status Management */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Resolution Notes */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80">
-            <h2 className="text-sm font-bold text-slate-700 mb-3">
-              {isResolved ? 'Resolution Notes' : 'Update Status'}
-            </h2>
-
-            {isResolved ? (
-              <div className="space-y-3">
-                <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
-                  <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Resolved Notes</p>
-                  <p className="text-sm text-slate-700 mt-1">{complaint.resolutionNotes || 'No notes provided'}</p>
-                </div>
+            {timeRanges.map((r) => {
+              const active = r === range
+              return (
                 <button
-                  onClick={() => navigate(`/complaints/${complaint._id}`)}
-                  className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-colors text-sm"
+                  key={r}
+                  type="button"
+                  onClick={() => setRange(r)}
+                  aria-pressed={active}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1A365D]/40 ${active ? "text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                  style={active ? { backgroundColor: NAVY } : undefined}
                 >
-                  View in Customer View
+                  {r}
                 </button>
-              </div>
-            ) : (
-              <>
-                {/* Status Selection */}
-                <div className="space-y-2 mb-4">
-                  <label className="block text-xs font-bold text-slate-700">Select Status</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {['Open', 'Under Review', 'Escalated', 'Resolved'].map((status) => (
-                      <button
-                        key={status}
-                        onClick={() => setSelectedStatus(status as Complaint['status'])}
-                        className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${selectedStatus === status
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
-                          }`}
-                      >
-                        {status}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Resolution Notes */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    {selectedStatus === 'Resolved' ? 'Resolution Notes *' : 'Notes (Optional)'}
-                  </label>
-                  <textarea
-                    value={resolutionNotes}
-                    onChange={(e) => setResolutionNotes(e.target.value)}
-                    rows={4}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none transition-all text-sm text-slate-800 font-medium resize-none placeholder-slate-400"
-                    placeholder={
-                      selectedStatus === 'Resolved'
-                        ? 'Describe the steps taken to resolve this complaint...'
-                        : 'Add any notes about this status update...'
-                    }
-                  />
-                </div>
-
-                {/* Action Buttons */}
-                <div className="space-y-2 pt-2">
-                  <button
-                    onClick={handleStatusUpdate}
-                    disabled={updating}
-                    className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all text-sm disabled:opacity-80 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {updating ? (
-                      <>
-                        <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
-                        Updating...
-                      </>
-                    ) : (
-                      'Send Update'
-                    )}
-                  </button>
-
-                  <button
-                    onClick={handleMarkResolved}
-                    disabled={updating || !resolutionNotes.trim()}
-                    className="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-base">check_circle</span>
-                    Mark as Resolved
-                  </button>
-                </div>
-              </>
-            )}
+              )
+            })}
           </div>
+        </header>
 
-          {/* Quick Info */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Quick Info</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-xs text-slate-500">Ticket ID</span>
-                <span className="text-xs font-bold text-slate-700">{complaint.ticketId}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-slate-500">Customer</span>
-                <span className="text-xs font-bold text-slate-700">{complaint.customerName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-slate-500">Status</span>
-                <span className={`text-xs font-bold ${complaint.status === 'Resolved' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                  {complaint.status}
+        {/* Metric cards */}
+        <section className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+          {metrics.map((m) => (
+            <div
+              key={m.label}
+              className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-lg"
+                style={{ backgroundColor: `${m.tint}14`, color: m.tint }}
+              >
+                <span className="material-symbols-outlined" aria-hidden>
+                  {m.icon}
                 </span>
               </div>
-              {complaint.repair && (
-                <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Repair</span>
-                  <span className="text-xs font-bold text-slate-700">{complaint.repair.ticketId}</span>
+              <p className="mt-4 font-display text-2xl font-bold text-[#1A365D]">{m.value}</p>
+              <p className="mt-1 text-sm text-slate-500">{m.label}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* Charts */}
+        <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {/* Line/bar chart placeholder */}
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm lg:col-span-2">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold text-[#1A365D]">Monthly Activity</h2>
+              <div className="flex items-center gap-4 text-xs text-slate-500">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: NAVY }} />
+                  Repairs
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: AMBER }} />
+                  Revenue
+                </span>
+              </div>
+            </div>
+            <div className="mt-6 flex h-52 items-end justify-between gap-3">
+              {monthly.map((d) => (
+                <div key={d.month} className="flex flex-1 flex-col items-center gap-2">
+                  <div className="flex h-44 w-full items-end justify-center gap-1">
+                    <div
+                      className="w-1/2 rounded-t-md transition-all"
+                      style={{ height: `${d.repairs}%`, backgroundColor: NAVY }}
+                      title={`Repairs: ${d.repairs}`}
+                    />
+                    <div
+                      className="w-1/2 rounded-t-md transition-all"
+                      style={{ height: `${d.revenue}%`, backgroundColor: AMBER }}
+                      title={`Revenue: ${d.revenue}`}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-slate-500">{d.month}</span>
                 </div>
-              )}
+              ))}
             </div>
           </div>
-        </div>
-      </div>
 
-      <style>{`
-        .material-symbols-outlined {
-          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-          vertical-align: middle;
-        }
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+          {/* Pie chart placeholder */}
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+            <h2 className="font-display text-lg font-semibold text-[#1A365D]">Repair Status</h2>
+            <div className="mt-6 flex flex-col items-center">
+              <div
+                className="relative h-40 w-40 rounded-full"
+                style={{ background: pieGradient() }}
+                role="img"
+                aria-label="Repair status distribution"
+              >
+                <div className="absolute inset-[22%] flex flex-col items-center justify-center rounded-full bg-white">
+                  <span className="font-display text-xl font-bold text-[#1A365D]">100</span>
+                  <span className="text-[11px] text-slate-500">Total</span>
+                </div>
+              </div>
+              <ul className="mt-6 w-full space-y-2">
+                {repairStatus.map((r) => (
+                  <li key={r.label} className="flex items-center justify-between text-sm">
+                    <span className="inline-flex items-center gap-2 text-slate-600">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: r.color }} />
+                      {r.label}
+                    </span>
+                    <span className="font-medium text-[#1A365D]">{r.value}%</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Payment status pills */}
+        <section className="mt-6 flex flex-wrap gap-3">
+          {paymentStatus.map((p) => (
+            <div
+              key={p.label}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white px-4 py-2 shadow-sm"
+            >
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.dot }} />
+              <span className="text-sm text-slate-600">{p.label}</span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-[#1A365D]">
+                {p.count}
+              </span>
+            </div>
+          ))}
+        </section>
+
+        {/* Two-column: Complaints & Repairs */}
+        <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold text-[#1A365D]">Recent Complaints</h2>
+              <button className="text-sm font-medium text-[#D97706] hover:underline">View all</button>
+            </div>
+            <ul className="mt-4 divide-y divide-slate-100">
+              {complaints.map((c) => (
+                <li key={c.ref} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-slate-800">{c.subject}</p>
+                    <p className="text-xs text-slate-400">{c.ref}</p>
+                  </div>
+                  <span
+                    className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{ color: c.tone, backgroundColor: c.bg }}
+                  >
+                    {c.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold text-[#1A365D]">Recent Repairs</h2>
+              <button className="text-sm font-medium text-[#D97706] hover:underline">View all</button>
+            </div>
+            <ul className="mt-4 divide-y divide-slate-100">
+              {repairs.map((r) => (
+                <li key={r.ref} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-slate-800">{r.device}</p>
+                    <p className="text-xs text-slate-400">{r.ref}</p>
+                  </div>
+                  <span
+                    className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{ color: r.tone, backgroundColor: r.bg }}
+                  >
+                    {r.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Quick Actions */}
+        <section className="mt-6">
+          <h2 className="font-display text-lg font-semibold text-[#1A365D]">Quick Actions</h2>
+          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+            {quickActions.map((a) => (
+              <button
+                key={a.label}
+                type="button"
+                className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-6 text-center shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1A365D]/40"
+              >
+                <span
+                  className="flex h-12 w-12 items-center justify-center rounded-xl"
+                  style={{ backgroundColor: `${NAVY}0F`, color: NAVY }}
+                >
+                  <span className="material-symbols-outlined" aria-hidden>
+                    {a.icon}
+                  </span>
+                </span>
+                <span className="text-sm font-medium text-slate-700">{a.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
-  );
-};
+  )
+}
 
 export default ComplaintResolution;

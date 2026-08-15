@@ -35,11 +35,11 @@ router.get('/create-staff', ensureStaffAdmin, (req, res) => {
 // 2. Handle Staff Creation + Secure Hashed Key Check + OTP Trigger
 router.post('/create-staff', ensureStaffAdmin, async (req, res) => {
     try {
-        console.log('========================================');
-        console.log('📝 CREATE STAFF REQUEST');
-        console.log('👤 Admin:', req.user?.username || 'Unknown');
-        console.log('📦 Request Body:', JSON.stringify(req.body, null, 2));
-        console.log('========================================');
+        // console.log('========================================');
+        // console.log('📝 CREATE STAFF REQUEST');
+        // console.log('👤 Admin:', req.user?.username || 'Unknown');
+        // console.log('📦 Request Body:', JSON.stringify(req.body, null, 2));
+        // console.log('========================================');
 
         const { username, email, password, role, secretKey, phoneNumber } = req.body;
 
@@ -58,7 +58,7 @@ router.post('/create-staff', ensureStaffAdmin, async (req, res) => {
 
         // Prevent timing attacks using crypto.timingSafeEqual
         if (bufferEnv.length !== bufferInput.length || !crypto.timingSafeEqual(bufferEnv, bufferInput)) {
-            console.log('❌ Invalid secret key');
+            // console.log('❌ Invalid secret key');
             return res.status(401).json({
                 success: false,
                 error: 'Invalid security key. Access denied.'
@@ -71,7 +71,7 @@ router.post('/create-staff', ensureStaffAdmin, async (req, res) => {
         });
 
         if (existingUser) {
-            console.log('❌ User already exists');
+            // console.log('❌ User already exists');
             return res.status(400).json({
                 success: false,
                 error: 'Username or email already in use.'
@@ -95,20 +95,20 @@ router.post('/create-staff', ensureStaffAdmin, async (req, res) => {
 
         await User.register(newUser, password);
 
-        console.log('✅ Staff user created:', newUser.username);
-        console.log('🔑 OTP Code:', otp);
-        console.log('📧 Email:', newUser.email);
-        console.log('👤 Role:', newUser.role);
+        // console.log('✅ Staff user created:', newUser.username);
+        // console.log('🔑 OTP Code:', otp);
+        // console.log('📧 Email:', newUser.email);
+        // console.log('👤 Role:', newUser.role);
 
         // Send OTP email
         try {
             await sendOTPEmail({ email: newUser.email, otp, type: 'signup' });
-            console.log('📧 OTP email sent successfully');
+            // console.log('📧 OTP email sent successfully');
         } catch (emailError) {
-            console.log('❌ Email sending failed, but OTP is:', otp);
+            // console.log('❌ Email sending failed, but OTP is:', otp);
         }
 
-        console.log('========================================');
+        // console.log('========================================');
 
         // Return JSON response
         return res.json({

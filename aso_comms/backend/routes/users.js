@@ -70,19 +70,19 @@ router.post('/register', async (req, res) => {
     registeredUser.otpExpires = otpExpires;
     await registeredUser.save();
 
-    console.log('========================================');
-    console.log('🔑 REGISTRATION OTP GENERATED');
-    console.log('📧 Email:', registeredUser.email);
-    console.log('🔑 OTP Code:', otp);
-    console.log('⏰ Expires in 10 minutes');
-    console.log('========================================');
+    // console.log('========================================');
+    // console.log('🔑 REGISTRATION OTP GENERATED');
+    // console.log('📧 Email:', registeredUser.email);
+    // console.log('🔑 OTP Code:', otp);
+    // console.log('⏰ Expires in 10 minutes');
+    // console.log('========================================');
 
     // Send email
     try {
       await sendOTPEmail({ email: registeredUser.email, otp, type: 'signup' });
-      console.log('✅ Registration email sent successfully');
+      // console.log('✅ Registration email sent successfully');
     } catch (emailError) {
-      console.log('❌ Email sending failed, but OTP is logged above');
+      // console.log('❌ Email sending failed, but OTP is logged above');
     }
 
     // Return response with OTP for testing
@@ -113,10 +113,10 @@ router.get('/login', (req, res) => {
 router.post('/login', (req, res, next) => {
   const { username, password } = req.body;
 
-  console.log('========================================');
-  console.log('🔐 LOGIN ATTEMPT');
-  console.log('📧 Input:', username);
-  console.log('========================================');
+  // console.log('========================================');
+  // console.log('🔐 LOGIN ATTEMPT');
+  // console.log('📧 Input:', username);
+  // console.log('========================================');
 
   // Validate input
   if (!username || !password) {
@@ -135,7 +135,7 @@ router.post('/login', (req, res, next) => {
   })
     .then(user => {
       if (!user) {
-        console.log('❌ User not found');
+        // console.log('❌ User not found');
         // ✅ SECURITY: Generic error message
         return res.status(401).json({
           success: false,
@@ -143,7 +143,7 @@ router.post('/login', (req, res, next) => {
         });
       }
 
-      console.log('👤 Found user:', user.username);
+      // console.log('👤 Found user:', user.username);
 
       // Now authenticate with Passport using the found username
       passport.authenticate('local', (err, authUser, info) => {
@@ -156,7 +156,7 @@ router.post('/login', (req, res, next) => {
         }
 
         if (!authUser) {
-          console.log('❌ Invalid password');
+          // console.log('❌ Invalid password');
           // ✅ SECURITY: Generic error message
           return res.status(401).json({
             success: false,
@@ -166,7 +166,7 @@ router.post('/login', (req, res, next) => {
 
         req.logIn(authUser, (err) => {
           if (err) {
-            console.error('❌ Login session error:', err);
+            // console.error('❌ Login session error:', err);
             return res.status(500).json({
               success: false,
               error: 'Login failed. Please try again.'
@@ -175,7 +175,7 @@ router.post('/login', (req, res, next) => {
 
           // Check if user is verified
           if (!authUser.isVerified) {
-            console.log('⚠️ User not verified');
+            // console.log('⚠️ User not verified');
             return res.status(403).json({
               success: false,
               error: 'Please verify your account before logging in.',
@@ -196,8 +196,8 @@ router.post('/login', (req, res, next) => {
             isVerified: authUser.isVerified
           };
 
-          console.log(`✅ User logged in: ${authUser.username} (${authUser.role})`);
-          console.log('========================================');
+          // console.log(`✅ User logged in: ${authUser.username} (${authUser.role})`);
+          // console.log('========================================');
 
           return res.json({
             success: true,

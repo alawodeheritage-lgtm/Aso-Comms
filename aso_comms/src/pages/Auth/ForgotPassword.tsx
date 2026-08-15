@@ -7,7 +7,7 @@ const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(''); // ✅ ADD THIS
+  const [error, setError] = useState('');
   const [isResending, setIsResending] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
 
@@ -24,9 +24,7 @@ const ForgotPassword: React.FC = () => {
     try {
       const response = await fetch('http://localhost:5000/forgot-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ email })
       });
@@ -34,14 +32,9 @@ const ForgotPassword: React.FC = () => {
       const data = await response.json();
 
       if (data.success) {
-        // Store email for OTP verification
         localStorage.setItem('resetEmail', email);
         setIsSubmitted(true);
-        
-        // Show OTP in console for testing
         console.log('📧 OTP for', email, 'is:', data.otp);
-        
-        // Navigate to OTP verification
         navigate(`/verify-otp?email=${encodeURIComponent(email)}&purpose=reset`);
       } else {
         setError(data.error || 'Failed to send reset link. Please try again.');
@@ -55,102 +48,79 @@ const ForgotPassword: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50/50">
-      <div className="w-full max-w-md">
-        {/* Brand Header */}
-        <div className="text-center mb-8">
-          <Link
-            to="/login"
-            className="inline-flex items-center justify-center gap-2 mb-3 group"
+    <div className="min-h-screen flex items-center justify-center bg-[#F8F6F1] px-4 py-8">
+      <div className="w-full max-w-5xl rounded-2xl bg-white shadow-xl shadow-slate-200/60 overflow-hidden border border-slate-200/80 flex flex-col md:flex-row">
+
+        {/* LEFT – Brand side (warm, human) */}
+        <div className="relative md:w-2/5 bg-gradient-to-br from-[#1A365D] to-[#2D4A6B] p-8 flex flex-col items-center justify-center text-white hidden md:flex">
+          <svg
+            className="absolute top-0 right-0 opacity-10"
+            width="200"
+            height="200"
+            viewBox="0 0 200 200"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <span className="material-symbols-outlined text-2xl">
-                precision_manufacturing
+            <circle cx="150" cy="150" r="100" fill="#D97706" />
+            <circle cx="50" cy="50" r="80" fill="#D97706" opacity="0.5" />
+          </svg>
+          <div className="relative z-10 text-center">
+            <span className="material-symbols-outlined text-7xl text-amber-400 mb-4">lock_reset</span>
+            <h2 className="font-display text-3xl font-bold tracking-tight">Forgot password?</h2>
+            <p className="text-blue-100 mt-2 max-w-xs">
+              No worries – we'll get you back in quickly.
+            </p>
+            <div className="mt-6 flex gap-4 text-xs font-medium text-blue-200">
+              <span className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">check_circle</span>
+                Secure & private
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">support_agent</span>
+                We're here to help
               </span>
             </div>
-            <span className="text-2xl font-extrabold tracking-tight text-slate-900">
-              AsoComms
-            </span>
-          </Link>
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
-            Reset Password
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Enter your email and we'll send you instructions to reset your password.
-          </p>
+          </div>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-20 h-1 bg-amber-400 rounded-full"></div>
         </div>
 
-        {/* Card Container */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 sm:p-8">
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-600 font-medium">
-              <span className="material-symbols-outlined text-base">error</span>
-              <span>{error}</span>
+        {/* RIGHT – Form */}
+        <div className="flex-1 p-8 md:p-12">
+          <div className="max-w-sm mx-auto">
+            {/* Mobile logo */}
+            <div className="flex flex-col items-center gap-2 text-center md:hidden mb-6">
+              <span className="material-symbols-outlined text-4xl text-[#1A365D]">precision_manufacturing</span>
+              <h1 className="text-2xl font-display font-bold text-[#1A365D]">AsoComms</h1>
             </div>
-          )}
 
-          {isSubmitted ? (
-            <div className="text-center py-4">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4 border border-emerald-100 shadow-xs">
-                <span className="material-symbols-outlined text-3xl">mark_email_read</span>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-1">
-                Check Your Email
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-xs mx-auto">
-                We've sent a password reset link to{' '}
-                <strong className="font-bold text-slate-900">{email}</strong>
-              </p>
-
-              <div className="mt-6 pt-6 border-t border-slate-100 space-y-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Resend logic
-                    handleSubmit({ preventDefault: () => {} } as React.FormEvent);
-                  }}
-                  disabled={isLoading}
-                  className="w-full h-11 bg-slate-100 hover:bg-slate-200/70 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="material-symbols-outlined text-base animate-spin">
-                        progress_activity
-                      </span>
-                      Resending...
-                    </>
-                  ) : (
-                    'Resend Reset Link'
-                  )}
-                </button>
-
-                <Link
-                  to="/login"
-                  className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors pt-1"
-                >
-                  <span className="material-symbols-outlined text-sm">arrow_back</span>
-                  Back to Sign In
-                </Link>
-              </div>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-display font-bold text-[#1A365D]">Reset your password</h2>
+              <p className="text-sm text-slate-500">We'll send you a link to reset your password. Let's get you back in.</p>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Email Address
+
+            {error && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-600 font-medium">
+                <span className="material-symbols-outlined text-base">error</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="text-sm font-medium text-slate-700">
+                  Email address
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-lg">
-                    mail
-                  </span>
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
                   <input
+                    id="email"
                     type="email"
+                    autoComplete="email"
+                    placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:bg-white outline-none transition-all text-sm text-slate-800 placeholder-slate-400 font-medium"
-                    placeholder="name@asocomms.pro"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1A365D] focus:outline-none focus:ring-2 focus:ring-[#1A365D]/20 transition-shadow"
                     required
-                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -158,38 +128,44 @@ const ForgotPassword: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-11 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2 text-sm shadow-sm shadow-blue-500/20 disabled:opacity-80 disabled:cursor-not-allowed"
+                className="h-11 w-full rounded-xl bg-[#1A365D] text-white font-bold hover:bg-[#2D4A6B] active:scale-95 transition-all shadow-sm shadow-[#1A365D]/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:shadow-md hover:-translate-y-0.5"
               >
                 {isLoading ? (
                   <>
-                    <span className="material-symbols-outlined text-base animate-spin">
-                      progress_activity
-                    </span>
-                    Sending Link...
+                    <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                    Sending link...
                   </>
                 ) : (
-                  'Send Reset Link'
+                  <>
+                    <span className="material-symbols-outlined text-base">send</span>
+                    Send reset link
+                  </>
                 )}
               </button>
-
-              <div className="text-center pt-2">
-                <Link
-                  to="/login"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-sm">arrow_back</span>
-                  Back to Sign In
-                </Link>
-              </div>
             </form>
-          )}
+
+            <div className="mt-6 text-center">
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-[#D97706] transition-colors hover:text-[#b85f00] hover:underline"
+              >
+                <span className="material-symbols-outlined text-base">arrow_back</span>
+                Back to Sign In
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
 
       <style>{`
+        .font-display {
+          font-family: 'Space Grotesk', system-ui, sans-serif;
+        }
         .material-symbols-outlined {
           font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
           vertical-align: middle;
+          display: inline-block;
+          line-height: 1;
         }
         .animate-spin {
           animation: spin 1s linear infinite;

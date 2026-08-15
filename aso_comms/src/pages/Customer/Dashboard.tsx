@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import MetricCard from '../../components/MetricCard';
 import StatusBadge from '../../components/StatusBadge';
+import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { complaintsAPI } from '../../api/complaints';
 import { repairsAPI } from '../../api/repairs';
@@ -34,7 +35,16 @@ interface Repair {
   deviceModel: string;
   issueDescription: string;
   status: string;
+  priority: 'low' | 'medium' | 'high';
+  assignedTo: string;
   dateLogged: string;
+  images?: string[];
+  financials?: {
+    totalEstimate: number;
+    amountPaid: number;
+    balanceDue: number;
+    paymentStatus: 'Unpaid' | 'Partial / Deposit Logged' | 'Paid in Full';
+  };
   owner?: {
     _id: string;
     username: string;
@@ -64,8 +74,9 @@ const CustomerDashboard: React.FC = () => {
     totalRepairs: '0',
   });
   const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
+  const [selectedRepair, setSelectedRepair] = useState<Repair | null>(null);
+  const [isRepairModalOpen, setIsRepairModalOpen] = useState(false);
 
-  // Default user data if not logged in
   const userData = {
     name: user?.username || 'Olabisi',
     email: user?.email || 'customer@asocomms.com',
@@ -75,7 +86,6 @@ const CustomerDashboard: React.FC = () => {
     avatar: user?.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAdKMvUNF8dKx8IjYJdFH9ZmD3pI5itD7N70OgPIHEWPRLNPCHHvr-tvOvg00eAfvH19rHwF2FciXe4TNxYaVIknk9NIHkcyZjV62lRi-MfTYOZNqNVMShj9Yo8anYJKMWPQQ_czRAtqSNHPwlKjWUNX3lk_PBGdiDAlq-0RwKZs9gk82mOEV7dwk4aqVL8g_ddJYI3V9Wa4NmxT4VORX1togTgcz8V7RBw32uO8tkHsjo0F5sgvbf3tdImWQOL0DQaSh7h10taKHk'
   };
 
-  // Fetch data from database
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -83,7 +93,7 @@ const CustomerDashboard: React.FC = () => {
         console.log('🔄 Fetching dashboard data...');
         console.log('👤 Current user:', user);
 
-        // First, try to link any unlinked repairs
+        // Link unlinked repairs
         try {
           const linkResponse = await api.get('/dashboard/link-repairs');
           console.log('🔗 Link Repairs Response:', linkResponse.data);
@@ -91,7 +101,6 @@ const CustomerDashboard: React.FC = () => {
           console.log('⚠️ Link repairs error:', linkErr.response?.data || linkErr.message);
         }
 
-        // Fetch the dashboard data (repairs)
         const repairsRes = await api.get('/dashboard');
         console.log('📊 Dashboard Response:', repairsRes.data);
 
@@ -99,36 +108,26 @@ const CustomerDashboard: React.FC = () => {
         console.log('📊 Repairs found:', repairsData.length);
         setRepairs(repairsData);
 
-        // Get all ticket IDs from the user's repairs
         const userTicketIds = repairsData.map((r: any) => r.ticketId).filter(Boolean);
         console.log('🎫 User Ticket IDs:', userTicketIds);
 
-        // Fetch complaints
         const complaintsRes = await complaintsAPI.getAll();
         const complaintsData = complaintsRes.complaints || complaintsRes.data || [];
 
-        // 🔒 STRICT FILTER: Only complaints that match the user's repairs
-        // AND match the user's name, email, or phone
         const userComplaints = complaintsData.filter((c: any) => {
-          // Check if complaint has a ticketId that matches user's repairs
           const ticketMatch = c.ticketId && userTicketIds.includes(c.ticketId);
-
-          // Also check if complaint matches user's details directly
           const emailMatch = c.customerEmail && user?.email &&
             c.customerEmail.toLowerCase() === user.email.toLowerCase();
           const phoneMatch = c.customerPhone && user?.phoneNumber &&
             c.customerPhone === user.phoneNumber;
           const nameMatch = c.customerName && user?.username &&
             c.customerName.toLowerCase() === user.username.toLowerCase();
-
-          // Complaint must either be linked to a repair OR match user details directly
           return ticketMatch || emailMatch || phoneMatch || nameMatch;
         });
 
         console.log('📊 Filtered Complaints:', userComplaints.length);
         setComplaints(userComplaints.slice(0, 3));
 
-        // Calculate stats from filtered complaints
         const activeComplaints = userComplaints.filter(
           (c: any) => c.status !== 'Resolved' && c.status !== 'Closed'
         ).length;
@@ -151,10 +150,8 @@ const CustomerDashboard: React.FC = () => {
           totalRepairs: repairsData.length.toString(),
         });
 
-        // Build recent activity
         const activities: Activity[] = [];
 
-        // Add complaint activities
         userComplaints.slice(0, 2).forEach((c: any) => {
           activities.push({
             id: `complaint-${c._id}`,
@@ -171,7 +168,6 @@ const CustomerDashboard: React.FC = () => {
           });
         });
 
-        // Add repair activities
         repairsData.slice(0, 2).forEach((r: any) => {
           activities.push({
             id: `repair-${r._id}`,
@@ -262,11 +258,41 @@ const CustomerDashboard: React.FC = () => {
     });
   };
 
+  const formatCurrency = (amount: number) => {
+    return `₦${amount.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    })}`;
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'text-red-700 bg-red-50 border-red-200/60';
+      case 'medium': return 'text-amber-800 bg-amber-50 border-amber-200/60';
+      case 'low': return 'text-slate-600 bg-slate-100 border-slate-200';
+      default: return 'text-slate-600 bg-slate-100 border-slate-200';
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'Paid in Full': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'Partial / Deposit Logged': return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'Unpaid': return 'bg-red-50 text-red-700 border-red-200';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+  };
+
+  const openRepairDetails = (repair: Repair) => {
+    setSelectedRepair(repair);
+    setIsRepairModalOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#1A365D] border-t-transparent"></div>
           <p className="mt-3 text-sm font-medium text-slate-500">Loading dashboard...</p>
         </div>
       </div>
@@ -274,268 +300,352 @@ const CustomerDashboard: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-      {/* Welcome Section */}
-      <section>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full mb-3">
-              <span className="material-symbols-outlined text-blue-600 text-sm">verified</span>
-              <span className="text-[10px] font-bold text-blue-700 tracking-wider uppercase">
-                ACCOUNT STATUS
-              </span>
-              <span className="text-xs font-extrabold text-blue-800">{userData.status}</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 mb-1">
-              Welcome back, {userData.name} 👋
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 max-w-lg">
-              Track your complaints, view real-time updates, or lodge a new request.
-            </p>
+    <div className="min-h-screen bg-[#F8F6F1] px-4 py-6 md:px-6 md:py-8">
+      <div className="max-w-6xl mx-auto space-y-6">
 
-            {/* Customer Info Cards */}
-            <div className="flex flex-wrap gap-3 mt-3">
-              <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-white px-3 py-1.5 rounded-full border border-slate-200/60">
-                <span className="material-symbols-outlined text-sm text-slate-400">email</span>
-                <span>{userData.email}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-white px-3 py-1.5 rounded-full border border-slate-200/60">
-                <span className="material-symbols-outlined text-sm text-slate-400">phone</span>
-                <span>{userData.phone}</span>
-              </div>
-              {repairs.length > 0 && (
-                <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">
-                  <span className="material-symbols-outlined text-sm">build</span>
-                  <span>{repairs.length} repairs</span>
-                </div>
-              )}
-            </div>
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#1A365D] tracking-tight">
+              Welcome back, {userData.name} 👋
+            </h1>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Here's a snapshot of your repairs and complaints.
+            </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link
-              to="/complaints/new"
-              className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-2.5 px-5 rounded-xl shadow-md shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all text-sm"
-            >
-              <span className="material-symbols-outlined text-lg">add_circle</span>
-              Lodge Complaint
-            </Link>
+          <div className="flex flex-wrap items-center gap-3">
             <Link
               to="/complaints"
-              className="inline-flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 font-bold py-2.5 px-5 rounded-xl hover:bg-slate-50 active:scale-95 transition-all text-sm shadow-xs"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1A365D] hover:text-[#2D4A6B] transition-colors px-4 py-2 rounded-xl border border-slate-200 hover:border-[#1A365D]/30 hover:shadow-sm"
             >
-              <span className="material-symbols-outlined text-lg">list_alt</span>
-              View All
+              <span className="material-symbols-outlined text-base">list_alt</span>
+              View all
+            </Link>
+            <Link
+              to="/complaints/new"
+              className="inline-flex items-center gap-1.5 bg-[#1A365D] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#2D4A6B] hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-sm shadow-[#1A365D]/20 text-sm"
+            >
+              <span className="material-symbols-outlined text-base">add_circle</span>
+              Lodge Complaint
             </Link>
           </div>
         </div>
-      </section>
 
-      {/* Stats Grid */}
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <MetricCard label="Active Complaints" value={stats.activeComplaints} icon="assignment" />
-        <MetricCard label="Resolved (This Month)" value={stats.resolvedThisMonth} icon="task_alt" color="text-emerald-600" bgColor="bg-emerald-50" />
-        <MetricCard label="Open Escalations" value={stats.openEscalations} icon="warning" color="text-red-600" bgColor="bg-red-50" />
-        <MetricCard label="Total Repairs" value={stats.totalRepairs} icon="build" color="text-blue-600" bgColor="bg-blue-50" />
-      </section>
-
-      {/* Service Status & Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-200/80 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-xl">check_circle</span>
+        {/* Metric Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 text-sm font-medium">Active</span>
+              <span className="material-symbols-outlined text-[#1A365D] text-2xl">assignment</span>
             </div>
+            <p className="text-3xl font-bold text-[#1A365D] mt-2">{stats.activeComplaints}</p>
+            <p className="text-sm text-slate-500">Complaints</p>
+          </div>
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 text-sm font-medium">Resolved</span>
+              <span className="material-symbols-outlined text-emerald-600 text-2xl">task_alt</span>
+            </div>
+            <p className="text-3xl font-bold text-emerald-600 mt-2">{stats.resolvedThisMonth}</p>
+            <p className="text-sm text-slate-500">This month</p>
+          </div>
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 text-sm font-medium">Escalated</span>
+              <span className="material-symbols-outlined text-amber-600 text-2xl">warning</span>
+            </div>
+            <p className="text-3xl font-bold text-amber-600 mt-2">{stats.openEscalations}</p>
+            <p className="text-sm text-slate-500">Open escalations</p>
+          </div>
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 text-sm font-medium">Repairs</span>
+              <span className="material-symbols-outlined text-[#1A365D] text-2xl">build</span>
+            </div>
+            <p className="text-3xl font-bold text-[#1A365D] mt-2">{stats.totalRepairs}</p>
+            <p className="text-sm text-slate-500">Total logged</p>
+          </div>
+        </div>
+
+        {/* System Status */}
+        <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-100 flex items-center gap-4">
+          <span className="material-symbols-outlined text-emerald-600 text-3xl">check_circle</span>
+          <div>
+            <h3 className="text-sm font-semibold text-emerald-800">System &amp; Service Status</h3>
+            <p className="text-sm text-emerald-700">All systems operational. No outages reported.</p>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link
+            to="/track"
+            className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-[#1A365D]/20 transition-all flex items-center gap-4 group"
+          >
+            <span className="w-11 h-11 rounded-xl bg-[#1A365D]/10 text-[#1A365D] flex items-center justify-center group-hover:bg-[#1A365D] group-hover:text-white transition-colors">
+              <span className="material-symbols-outlined text-2xl">search</span>
+            </span>
             <div>
-              <p className="text-xs font-bold text-slate-900">System & Service Status</p>
-              <p className="text-xs text-slate-500 mt-0.5">All Systems Operational</p>
+              <p className="text-sm font-semibold text-slate-900 group-hover:text-[#1A365D] transition-colors">Track Status</p>
+              <p className="text-xs text-slate-500">Check complaint progress</p>
             </div>
-          </div>
-          <span className="material-symbols-outlined text-slate-400">chevron_right</span>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-200/80 flex flex-col justify-between">
-          <p className="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-2">Quick Actions</p>
-          <div className="flex gap-2">
-            <button onClick={() => navigate('/complaints')} className="flex-1 flex items-center justify-center gap-1.5 bg-slate-50 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200/60">
-              <span className="material-symbols-outlined text-base text-blue-600">track_changes</span> Track
-            </button>
-            <button onClick={() => navigate('/support')} className="flex-1 flex items-center justify-center gap-1.5 bg-slate-50 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200/60">
-              <span className="material-symbols-outlined text-base text-blue-600">support_agent</span> Help
-            </button>
-            <button onClick={() => navigate('/profile')} className="flex-1 flex items-center justify-center gap-1.5 bg-slate-50 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200/60">
-              <span className="material-symbols-outlined text-base text-blue-600">person</span> Profile
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Active Complaints */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-bold text-slate-900">Recent Complaints</h3>
-          <Link to="/complaints" className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5">
-            View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+          <Link
+            to="/complaints/new"
+            className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-[#1A365D]/20 transition-all flex items-center gap-4 group"
+          >
+            <span className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors">
+              <span className="material-symbols-outlined text-2xl">add_circle</span>
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-slate-900 group-hover:text-[#1A365D] transition-colors">Lodge Complaint</p>
+              <p className="text-xs text-slate-500">Submit a new issue</p>
+            </div>
+          </Link>
+          <Link
+            to="/profile"
+            className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-[#1A365D]/20 transition-all flex items-center gap-4 group"
+          >
+            <span className="w-11 h-11 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center group-hover:bg-[#1A365D] group-hover:text-white transition-colors">
+              <span className="material-symbols-outlined text-2xl">person</span>
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-slate-900 group-hover:text-[#1A365D] transition-colors">My Profile</p>
+              <p className="text-xs text-slate-500">View and edit details</p>
+            </div>
           </Link>
         </div>
 
-        <div className="space-y-3">
-          {complaints.length === 0 ? (
-            <div className="bg-white rounded-2xl p-8 text-center border border-slate-200/80 shadow-xs">
-              <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
-                <span className="material-symbols-outlined text-2xl">inbox</span>
-              </div>
-              <h4 className="text-sm font-bold text-slate-900 mb-1">No Complaints</h4>
-              <p className="text-xs text-slate-500">You haven't lodged any complaints yet.</p>
-              <Link to="/complaints/new" className="inline-block mt-3 text-blue-600 text-xs font-bold hover:underline">
-                Lodge your first complaint
+        {/* Two-column: Complaints + Repairs */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Complaints */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-[#1A365D]">Recent Complaints</h2>
+              <Link to="/complaints" className="text-sm font-medium text-[#D97706] hover:text-[#b85f00] flex items-center gap-0.5">
+                View all
+                <span className="material-symbols-outlined text-sm">chevron_right</span>
               </Link>
             </div>
-          ) : (
-            complaints.map((complaint) => (
-              <Link key={complaint._id} to={`/complaints/${complaint._id}`} className="block bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80 hover:border-blue-300 hover:shadow-md transition-all group">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-blue-600 text-lg">chat</span>
+            {complaints.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-6">No complaints yet.</p>
+            ) : (
+              <ul className="space-y-3">
+                {complaints.map((c) => (
+                  <li key={c._id} className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 hover:border-[#1A365D]/20 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-medium text-slate-900">{c.subject}</p>
+                      <StatusBadge status={mapStatusToBadge(c.status)} size="sm" />
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
-                          {complaint.subject}
-                        </h4>
-                        <StatusBadge status={mapStatusToBadge(complaint.status)} size="sm" />
-                        {complaint.ticketId && (
-                          <span className="text-[10px] font-mono bg-slate-100 px-2 py-0.5 rounded-full text-slate-500">
-                            {complaint.ticketId}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-400 font-medium mt-0.5">
-                        {complaint.customerName} • {formatDate(complaint.createdAt)}
-                      </p>
-                      <p className="text-xs text-slate-600 mt-1 line-clamp-1 font-medium">
-                        {complaint.description}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
-                    <div className={`w-2.5 h-2.5 rounded-full ${getStatusDotColor(complaint.status)}`}></div>
-                    <span className="material-symbols-outlined text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all text-lg">
-                      chevron_right
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+                      <span className="material-symbols-outlined text-sm">schedule</span>
+                      {formatDate(c.createdAt)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Your Repairs */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-[#1A365D]">Your Repairs</h2>
+            </div>
+            {repairs.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-6">No repairs found.</p>
+            ) : (
+              <ul className="space-y-3">
+                {repairs.slice(0, 3).map((r) => (
+                  <li
+                    key={r._id}
+                    onClick={() => openRepairDetails(r)}
+                    className="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/50 p-4 hover:border-[#1A365D]/20 hover:shadow-sm transition-all cursor-pointer"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#1A365D]">
+                      <span className="material-symbols-outlined">smartphone</span>
                     </span>
-                  </div>
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* Show Repairs */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-bold text-slate-900">Your Repairs</h3>
-          <button className="text-xs font-bold text-blue-600 hover:text-blue-700">View All</button>
-        </div>
-
-        <div className="space-y-3">
-          {repairs.length === 0 ? (
-            <div className="bg-white rounded-2xl p-6 text-center border border-slate-200/80 shadow-xs">
-              <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
-                <span className="material-symbols-outlined text-2xl">build</span>
-              </div>
-              <h4 className="text-sm font-bold text-slate-900 mb-1">No Repairs Found</h4>
-              <p className="text-xs text-slate-500">You don't have any repair records yet.</p>
-              <Link to="/" className="inline-block mt-3 text-blue-600 text-xs font-bold hover:underline">
-                Book a repair
-              </Link>
-            </div>
-          ) : (
-            repairs.slice(0, 3).map((repair) => (
-              <div key={repair._id} className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80 hover:border-blue-300 transition-all">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-blue-600 text-lg">smartphone</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-sm font-bold text-slate-900 truncate">{repair.deviceModel || 'Device'}</h4>
-                      <StatusBadge status={repair.status?.toLowerCase() || 'pending'} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-slate-900">{r.deviceModel || 'Device'}</p>
+                      <p className="text-xs text-slate-500">
+                        {r.ticketId} • {formatDate(r.dateLogged)}
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-400 font-medium mt-0.5">
-                      {repair.ticketId || 'No Ticket ID'} • {formatDate(repair.dateLogged || repair.createdAt)}
-                    </p>
-                    <p className="text-xs text-slate-600 mt-1 line-clamp-1">
-                      {repair.issueDescription || 'No description'}
+                    <StatusBadge status={r.status?.toLowerCase() || 'pending'} size="sm" />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+          <h2 className="text-base font-semibold text-[#1A365D] mb-4">Recent Activity</h2>
+          {recentActivity.length === 0 ? (
+            <p className="text-sm text-slate-500 text-center py-4">No recent activity.</p>
+          ) : (
+            <ul className="space-y-4">
+              {recentActivity.map((act) => (
+                <li key={act.id} className="flex items-start gap-3">
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#1A365D]" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm text-slate-800">{act.title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{act.time}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Footer note */}
+        <div className="text-center text-xs text-slate-400 pt-4">
+          <p>Need help? <Link to="/support" className="text-[#D97706] hover:underline">Contact support</Link></p>
+        </div>
+
+      </div>
+
+      {/* ✅ Repair Details Modal with Full Info */}
+      <Modal
+        isOpen={isRepairModalOpen}
+        onClose={() => {
+          setIsRepairModalOpen(false);
+          setSelectedRepair(null);
+        }}
+        title="Repair Details"
+        size="lg"
+      >
+        {selectedRepair && (
+          <div className="space-y-5">
+            {/* Header: Ticket ID & Status */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-mono bg-slate-100 px-2 py-0.5 rounded-full text-slate-500">
+                  {selectedRepair.ticketId}
+                </span>
+                <StatusBadge status={selectedRepair.status?.toLowerCase() || 'pending'} size="sm" />
+                <span className={`px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider ${getPriorityColor(selectedRepair.priority || 'medium')}`}>
+                  {selectedRepair.priority || 'medium'}
+                </span>
+              </div>
+              <span className="text-xs text-slate-400">
+                {formatDate(selectedRepair.dateLogged)}
+              </span>
+            </div>
+
+            {/* Device & Description */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Device</p>
+                <p className="text-sm font-bold text-slate-800">{selectedRepair.deviceModel || 'Unknown'}</p>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assigned To</p>
+                <p className="text-sm font-bold text-slate-800">{selectedRepair.assignedTo || 'Unassigned'}</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Issue Description</p>
+              <p className="text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                {selectedRepair.issueDescription || 'No description provided.'}
+              </p>
+            </div>
+
+            {/* Customer Info */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Customer</p>
+                <p className="text-sm font-bold text-slate-800">{selectedRepair.customerName}</p>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Phone</p>
+                <p className="text-sm font-bold text-slate-800">{selectedRepair.phoneNumber}</p>
+              </div>
+            </div>
+
+            {/* Financials */}
+            {selectedRepair.financials && (
+              <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
+                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">Financial Details</p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-[9px] font-semibold text-slate-400">Total Estimate</p>
+                    <p className="text-sm font-bold text-slate-900">{formatCurrency(selectedRepair.financials.totalEstimate)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-semibold text-slate-400">Amount Paid</p>
+                    <p className="text-sm font-bold text-emerald-600">{formatCurrency(selectedRepair.financials.amountPaid)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-semibold text-slate-400">Balance</p>
+                    <p className={`text-sm font-bold ${selectedRepair.financials.balanceDue > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                      {formatCurrency(selectedRepair.financials.balanceDue)}
                     </p>
                   </div>
                 </div>
+                <div className="mt-2 flex justify-center">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${getPaymentStatusColor(selectedRepair.financials.paymentStatus)}`}>
+                    {selectedRepair.financials.paymentStatus}
+                  </span>
+                </div>
               </div>
-            ))
-          )}
-        </div>
-      </section>
+            )}
 
-      {/* Recent Activity */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-bold text-slate-900">Recent Activity</h3>
-          <button className="text-xs font-bold text-blue-600 hover:text-blue-700">View History</button>
-        </div>
+            {/* Images */}
+            {selectedRepair.images && selectedRepair.images.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Device Photos</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {selectedRepair.images.map((img, idx) => (
+                    <a
+                      key={idx}
+                      href={img}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 hover:opacity-90 transition-opacity"
+                    >
+                      <img src={img} alt={`Device photo ${idx + 1}`} className="w-full h-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        <div className="space-y-3">
-          {recentActivity.map((activity) => (
-            <div key={activity.id} className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80 flex items-center gap-3 hover:bg-slate-50/50 transition-colors">
-              <div className={`w-10 h-10 rounded-xl ${activity.color} flex items-center justify-center shrink-0`}>
-                <span className="material-symbols-outlined text-lg">{activity.icon}</span>
+            {/* Owner (if any) */}
+            {selectedRepair.owner && (
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logged By</p>
+                <p className="text-sm font-bold text-slate-800">{selectedRepair.owner.username}</p>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-bold text-slate-800 leading-snug">{activity.title}</p>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">{activity.time}</p>
-              </div>
-              <span className="material-symbols-outlined text-slate-400 text-lg">chevron_right</span>
+            )}
+
+            {/* Close */}
+            <div className="flex justify-end pt-3 border-t border-slate-200">
+              <button
+                onClick={() => {
+                  setIsRepairModalOpen(false);
+                  setSelectedRepair(null);
+                }}
+                className="bg-[#1A365D] text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-[#2D4A6B] transition-colors shadow-xs"
+              >
+                Close
+              </button>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Helpful Links */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Link to="/complaints" className="bg-white p-4 rounded-2xl border border-slate-200/80 hover:border-blue-300 hover:shadow-md transition-all flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-lg">search</span>
           </div>
-          <div>
-            <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors">Track Status</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">Check complaint progress</p>
-          </div>
-        </Link>
-
-        <Link to="/complaints/new" className="bg-white p-4 rounded-2xl border border-slate-200/80 hover:border-blue-300 hover:shadow-md transition-all flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-lg">add_circle</span>
-          </div>
-          <div>
-            <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors">Lodge Complaint</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">Submit a new issue</p>
-          </div>
-        </Link>
-
-        <Link to="/profile" className="bg-white p-4 rounded-2xl border border-slate-200/80 hover:border-blue-300 hover:shadow-md transition-all flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-lg">person</span>
-          </div>
-          <div>
-            <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors">My Profile</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">View and edit details</p>
-          </div>
-        </Link>
-      </section>
+        )}
+      </Modal>
 
       <style>{`
+        .font-display {
+          font-family: 'Space Grotesk', system-ui, sans-serif;
+        }
         .material-symbols-outlined {
           font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
           vertical-align: middle;
+          display: inline-block;
+          line-height: 1;
         }
         .animate-spin {
           animation: spin 1s linear infinite;
@@ -543,12 +653,6 @@ const CustomerDashboard: React.FC = () => {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
-        }
-        .line-clamp-1 {
-          display: -webkit-box;
-          -webkit-line-clamp: 1;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
         }
       `}</style>
     </div>

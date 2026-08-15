@@ -8,8 +8,8 @@ const { isLoggedIn, isStaff, validateComplaint } = require('../middleware');
 
 // GET /complaints - Get all complaints
 router.get('/', isLoggedIn, catchAsync(async (req, res) => {
-    console.log('📊 GET /complaints - Fetching all complaints');
-    console.log('👤 User:', req.user._id, req.user.role);
+    // console.log('📊 GET /complaints - Fetching all complaints');
+    // console.log('👤 User:', req.user._id, req.user.role);
 
     const { status } = req.query;
     const isManagement = req.user.role === 'manager' || req.user.role === 'ceo' || req.user.isStaff;
@@ -25,7 +25,7 @@ router.get('/', isLoggedIn, catchAsync(async (req, res) => {
         .populate('repair', 'ticketId deviceModel status')
         .sort({ createdAt: -1 });
 
-    console.log(`📊 Found ${complaints.length} complaints`);
+    // console.log(`📊 Found ${complaints.length} complaints`);
 
     res.json({
         complaints: complaints,
@@ -73,9 +73,9 @@ router.get('/new', isLoggedIn, catchAsync(async (req, res) => {
 // POST /complaints - Create Complaint Ticket
 // backend/routes/complaints.js - Updated POST route
 router.post('/', isLoggedIn, validateComplaint, catchAsync(async (req, res) => {
-    console.log('📤 POST /complaints - Creating new complaint');
-    console.log('📤 Request body:', req.body);
-    console.log('👤 User:', req.user._id);
+    // console.log('📤 POST /complaints - Creating new complaint');
+    // console.log('📤 Request body:', req.body);
+    // console.log('👤 User:', req.user._id);
 
     const { ticketId, customerName, customerPhone, subject, category, description, images } = req.body;
 
@@ -108,10 +108,10 @@ router.post('/', isLoggedIn, validateComplaint, catchAsync(async (req, res) => {
     });
 
     await newComplaint.save();
-    
-    console.log('✅ Complaint created:', newComplaint._id);
-    
-    res.status(201).json({ 
+
+    // console.log('✅ Complaint created:', newComplaint._id);
+
+    res.status(201).json({
         success: true,
         message: `Complaint for Ticket #${newComplaint.ticketId} submitted successfully.`,
         complaint: newComplaint
@@ -123,7 +123,7 @@ router.patch('/:id/status', isLoggedIn, isStaff, catchAsync(async (req, res) => 
     const { id } = req.params;
     const { status, resolutionNotes } = req.body;
 
-    console.log(`📤 PATCH /complaints/${id}/status - Updating status to:`, status);
+    // console.log(`📤 PATCH /complaints/${id}/status - Updating status to:`, status);
 
     // ✅ Find the complaint first
     const complaint = await Complaint.findById(id);
@@ -145,7 +145,7 @@ router.patch('/:id/status', isLoggedIn, isStaff, catchAsync(async (req, res) => 
     // ✅ Save the complaint - don't change other fields
     await complaint.save();
 
-    console.log('✅ Complaint status updated');
+    // console.log('✅ Complaint status updated');
 
     // ✅ Return the updated complaint
     const updatedComplaint = await Complaint.findById(id)
@@ -184,8 +184,8 @@ router.patch('/:id/status', isLoggedIn, isStaff, catchAsync(async (req, res) => 
     const { id } = req.params;
     const { status, resolutionNotes } = req.body;
 
-    console.log(`📤 PATCH /complaints/${id}/status - Updating status to:`, status);
-    console.log('📝 Resolution Notes:', resolutionNotes);
+    // console.log(`📤 PATCH /complaints/${id}/status - Updating status to:`, status);
+    // console.log('📝 Resolution Notes:', resolutionNotes);
 
     const complaint = await Complaint.findById(id);
     if (!complaint) {
@@ -225,7 +225,7 @@ router.patch('/:id/status', isLoggedIn, isStaff, catchAsync(async (req, res) => 
     await complaint.populate('resolvedBy', 'username email');
     await complaint.populate('submittedBy', 'username email');
 
-    console.log('✅ Complaint status updated:', complaint.status);
+    // console.log('✅ Complaint status updated:', complaint.status);
 
     res.json({
         success: true,
@@ -236,9 +236,9 @@ router.patch('/:id/status', isLoggedIn, isStaff, catchAsync(async (req, res) => 
 
 // POST /complaints - Create Complaint Ticket
 router.post('/', isLoggedIn, validateComplaint, catchAsync(async (req, res) => {
-    console.log('📤 POST /complaints - Creating new complaint');
-    console.log('📤 Request body:', req.body);
-    console.log('👤 User:', req.user._id);
+    // console.log('📤 POST /complaints - Creating new complaint');
+    // console.log('📤 Request body:', req.body);
+    // console.log('👤 User:', req.user._id);
 
     const { ticketId, customerName, customerPhone, subject, category, description } = req.body;
 
@@ -271,7 +271,7 @@ router.post('/', isLoggedIn, validateComplaint, catchAsync(async (req, res) => {
 
     await newComplaint.save();
 
-    console.log('✅ Complaint created:', newComplaint._id);
+    // console.log('✅ Complaint created:', newComplaint._id);
 
     res.status(201).json({
         success: true,
