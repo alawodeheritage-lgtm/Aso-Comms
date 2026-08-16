@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { uploadSingle, uploadMultiple, deleteFromCloudinary } = require('../config/cloudinary');
 const { isLoggedIn } = require('../middleware');
-const catchAsync = require('../utils/catchAsync');
+const catchAsync = require('../utils/CatchAsync');
 
 // Upload single file
 router.post('/single', isLoggedIn, catchAsync(async (req, res) => {

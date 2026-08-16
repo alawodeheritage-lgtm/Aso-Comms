@@ -4,7 +4,7 @@ const router = express.Router();
 const Repair = require('../models/repair');
 const User = require('../models/user');
 const { isLoggedIn, checkAccountStatus } = require('../middleware');
-const catchAsync = require('../utils/catchAsync');
+const catchAsync = require('../utils/CatchAsync');
 
 // Route: GET /dashboard
 router.get('/', isLoggedIn, checkAccountStatus, catchAsync(async (req, res) => {

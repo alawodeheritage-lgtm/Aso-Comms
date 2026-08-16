@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const Repair = require('../models/repair');
-const catchAsync = require('../utils/catchAsync');
+const catchAsync = require('../utils/CatchAsync');
 const rateLimit = require('express-rate-limit');
 
 const trackLimiter = rateLimit({

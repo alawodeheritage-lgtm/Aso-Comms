@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
-const catchAsync = require('../utils/catchAsync');
+const catchAsync = require('../utils/CatchAsync');
 const { isLoggedIn } = require('../middleware');
 
 // GET /notifications - Get user's notifications

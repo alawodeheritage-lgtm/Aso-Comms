@@ -4,7 +4,7 @@ const router = express.Router();
 const Repair = require('../models/repair');
 const Expense = require('../models/expense');
 const ExpressError = require('../utils/ExpressError');
-const catchAsync = require('../utils/catchAsync');
+const catchAsync = require('../utils/CatchAsync');
 const { isLoggedIn, isStaff, validateRepair } = require('../middleware');
 const User = require('../models/user');
 
