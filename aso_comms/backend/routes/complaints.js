@@ -3,11 +3,11 @@ const express = require('express');
 const router = express.Router();
 const Complaint = require('../models/complaint');
 const Repair = require('../models/repair');
-const CatchAsync = require('../utils/CatchAsync');
+const catchAsync = require('../utils/catchAsync');
 const { isLoggedIn, isStaff, validateComplaint } = require('../middleware');
 
 // GET /complaints - Get all complaints
-router.get('/', isLoggedIn, CatchAsync(async (req, res) => {
+router.get('/', isLoggedIn, catchAsync(async (req, res) => {
     // console.log('📊 GET /complaints - Fetching all complaints');
     // console.log('👤 User:', req.user._id, req.user.role);
 
@@ -35,7 +35,7 @@ router.get('/', isLoggedIn, CatchAsync(async (req, res) => {
 }));
 
 // GET /complaints/new - Get form data with prefills
-router.get('/new', isLoggedIn, CatchAsync(async (req, res) => {
+router.get('/new', isLoggedIn, catchAsync(async (req, res) => {
     let { ticketId } = req.query;
     let prefilledRepair = null;
     let userRepairs = [];
@@ -72,7 +72,7 @@ router.get('/new', isLoggedIn, CatchAsync(async (req, res) => {
 
 // POST /complaints - Create Complaint Ticket
 // backend/routes/complaints.js - Updated POST route
-router.post('/', isLoggedIn, validateComplaint, CatchAsync(async (req, res) => {
+router.post('/', isLoggedIn, validateComplaint, catchAsync(async (req, res) => {
     // console.log('📤 POST /complaints - Creating new complaint');
     // console.log('📤 Request body:', req.body);
     // console.log('👤 User:', req.user._id);
@@ -119,7 +119,7 @@ router.post('/', isLoggedIn, validateComplaint, CatchAsync(async (req, res) => {
 }));
 
 // ✅ FIXED: PATCH /complaints/:id/status - Update Status
-router.patch('/:id/status', isLoggedIn, isStaff, CatchAsync(async (req, res) => {
+router.patch('/:id/status', isLoggedIn, isStaff, catchAsync(async (req, res) => {
     const { id } = req.params;
     const { status, resolutionNotes } = req.body;
 
@@ -161,7 +161,7 @@ router.patch('/:id/status', isLoggedIn, isStaff, CatchAsync(async (req, res) => 
 }));
 
 // GET /complaints/:id - Get single complaint
-router.get('/:id', isLoggedIn, CatchAsync(async (req, res) => {
+router.get('/:id', isLoggedIn, catchAsync(async (req, res) => {
     const { id } = req.params;
     const isManagement = req.user.role === 'manager' || req.user.role === 'ceo' || req.user.isStaff;
 
@@ -180,7 +180,7 @@ router.get('/:id', isLoggedIn, CatchAsync(async (req, res) => {
 
     res.json({ complaint });
 }));
-router.patch('/:id/status', isLoggedIn, isStaff, CatchAsync(async (req, res) => {
+router.patch('/:id/status', isLoggedIn, isStaff, catchAsync(async (req, res) => {
     const { id } = req.params;
     const { status, resolutionNotes } = req.body;
 
@@ -235,7 +235,7 @@ router.patch('/:id/status', isLoggedIn, isStaff, CatchAsync(async (req, res) => 
 }));
 
 // POST /complaints - Create Complaint Ticket
-router.post('/', isLoggedIn, validateComplaint, CatchAsync(async (req, res) => {
+router.post('/', isLoggedIn, validateComplaint, catchAsync(async (req, res) => {
     // console.log('📤 POST /complaints - Creating new complaint');
     // console.log('📤 Request body:', req.body);
     // console.log('👤 User:', req.user._id);

@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Transaction = require('../models/transaction'); // Using your actual Transaction model
-const CatchAsync = require('../utils/CatchAsync'); // Matching your file's capital 'C'
+const catchAsync = require('../utils/catchAsync'); // Matching your file's capital 'C'
 
 // ====== SYSTEM FINANCIAL LEDGER HISTORY ======
 // Route path relative to the mount: GET /transactions
-router.get('/', CatchAsync(async (req, res) => {
+router.get('/', catchAsync(async (req, res) => {
     // 1. Fetch all logged ledger items and sort them newest first
     const transactions = await Transaction.find({}).sort({ date: -1 });
 

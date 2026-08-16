@@ -4,15 +4,13 @@ const router = express.Router();
 const Repair = require('../models/repair');
 const Expense = require('../models/expense');
 const ExpressError = require('../utils/ExpressError');
-const CatchAsync = require('../utils/CatchAsync');
+const catchAsync = require('../utils/catchAsync');
 const { isLoggedIn, isStaff, validateRepair } = require('../middleware');
-const User = require('../models/user');
-
 
 // ==========================================
 // GET ALL REPAIRS
 // ==========================================
-router.get('/', isLoggedIn, CatchAsync(async (req, res) => {
+router.get('/', isLoggedIn, catchAsync(async (req, res) => {
     // console.log('📋 FETCH REPAIRS REQUEST');
     // console.log('📧 User:', req.user?.username || 'Unknown');
 
@@ -105,7 +103,7 @@ router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
 // ==========================================
 // GET SINGLE REPAIR
 // ==========================================
-router.get('/:id', isLoggedIn, CatchAsync(async (req, res) => {
+router.get('/:id', isLoggedIn, catchAsync(async (req, res) => {
     const { id } = req.params;
     const repair = await Repair.findById(id).populate('owner');
 

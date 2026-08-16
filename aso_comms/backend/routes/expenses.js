@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const Expense = require('../models/expense');
-const CatchAsync = require('../utils/CatchAsync');
+const catchAsync = require('../utils/CatchAsync');
 const ExpressError = require('../utils/ExpressError');
 const { isLoggedIn, isStaff } = require('../middleware');
 

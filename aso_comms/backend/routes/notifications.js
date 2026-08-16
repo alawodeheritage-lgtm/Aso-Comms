@@ -2,11 +2,11 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
-const CatchAsync = require('../utils/CatchAsync');
+const catchAsync = require('../utils/catchAsync');
 const { isLoggedIn } = require('../middleware');
 
 // GET /notifications - Get user's notifications
-router.get('/', isLoggedIn, CatchAsync(async (req, res) => {
+router.get('/', isLoggedIn, catchAsync(async (req, res) => {
   const notifications = await Notification.find({ user: req.user._id })
     .sort({ createdAt: -1 });
 
@@ -17,7 +17,7 @@ router.get('/', isLoggedIn, CatchAsync(async (req, res) => {
 }));
 
 // GET /notifications/unread-count - Get unread count
-router.get('/unread-count', isLoggedIn, CatchAsync(async (req, res) => {
+router.get('/unread-count', isLoggedIn, catchAsync(async (req, res) => {
   const count = await Notification.countDocuments({
     user: req.user._id,
     read: false
@@ -26,7 +26,7 @@ router.get('/unread-count', isLoggedIn, CatchAsync(async (req, res) => {
 }));
 
 // PATCH /notifications/:id/read - Mark as read
-router.patch('/:id/read', isLoggedIn, CatchAsync(async (req, res) => {
+router.patch('/:id/read', isLoggedIn, catchAsync(async (req, res) => {
   const notification = await Notification.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
     { read: true, readAt: new Date() },
@@ -41,7 +41,7 @@ router.patch('/:id/read', isLoggedIn, CatchAsync(async (req, res) => {
 }));
 
 // PATCH /notifications/mark-all-read - Mark all as read
-router.patch('/mark-all-read', isLoggedIn, CatchAsync(async (req, res) => {
+router.patch('/mark-all-read', isLoggedIn, catchAsync(async (req, res) => {
   await Notification.updateMany(
     { user: req.user._id, read: false },
     { read: true, readAt: new Date() }
@@ -51,7 +51,7 @@ router.patch('/mark-all-read', isLoggedIn, CatchAsync(async (req, res) => {
 }));
 
 // DELETE /notifications/:id - Delete a notification
-router.delete('/:id', isLoggedIn, CatchAsync(async (req, res) => {
+router.delete('/:id', isLoggedIn, catchAsync(async (req, res) => {
   const notification = await Notification.findOneAndDelete({
     _id: req.params.id,
     user: req.user._id

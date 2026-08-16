@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
-const CatchAsync = require('../utils/CatchAsync');
+const catchAsync = require('../utils/catchAsync');
 const passport = require('passport');
 const { repairJoiSchema } = require('../schemas');
 const Repair = require('../models/repair');
