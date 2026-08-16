@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm install && npx vite build --mode production || echo 'Build completed with warnings'",
+  "buildCommand": "npm install && npx vite build --mode production --emptyOutDir",
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
