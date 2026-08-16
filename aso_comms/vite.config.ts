@@ -5,8 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    rollupOptions: {
-      external: [], // Don't externalize anything
-    }
+    outDir: 'dist', // ← Make sure this is set
+    emptyOutDir: true
   }
 })
