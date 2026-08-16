@@ -40,8 +40,24 @@ import Financials from './pages/Admin/Financials';
 import AdminProfile from './pages/Admin/Profile';
 import CreateStaff from './pages/Admin/CreateStaff';
 
-// 404
-const NotFound: React.FC = () => { /* ... keep as is */ };
+// ✅ ADD MISSING 404 COMPONENT
+const NotFound: React.FC = () => {
+  return (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
+      <div className="text-center">
+        <h1 className="text-6xl font-bold text-[#1A365D]">404</h1>
+        <h2 className="text-2xl font-bold text-slate-700 mt-4">Page Not Found</h2>
+        <p className="text-slate-500 mt-2">The page you're looking for doesn't exist or has been moved.</p>
+        <Link
+          to="/"
+          className="inline-block mt-6 px-6 py-3 bg-[#1A365D] text-white rounded-xl font-bold hover:bg-[#2D4A6B] transition-colors"
+        >
+          Go Home
+        </Link>
+      </div>
+    </div>
+  );
+};
 
 // ============================================
 // 📦 LAYOUT WRAPPER (with Sidebar)
@@ -49,7 +65,7 @@ const NotFound: React.FC = () => { /* ... keep as is */ };
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = window.location.pathname;
 
-  // ✅ ADD public pages where you DON'T want Navbar / Sidebar
+  // ✅ Public pages where you DON'T want Navbar / Sidebar
   const hideNavAndSidebar = location === '/' ||
     location === '/login' ||
     location === '/register' ||
@@ -59,10 +75,10 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     location === '/track' ||
     location.startsWith('/track/') ||
     location.startsWith('/profile/') ||
-    location === '/support' ||        // ✅ added
-    location === '/contact' ||        // ✅ added
-    location === '/privacy' ||        // ✅ added
-    location === '/terms';            // ✅ added
+    location === '/support' ||
+    location === '/contact' ||
+    location === '/privacy' ||
+    location === '/terms';
 
   if (hideNavAndSidebar) {
     return <>{children}</>;
@@ -72,7 +88,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <>
       <Navbar />
       <div className="flex flex-1 pt-16">
-        <Sidebar />   {/* ✅ Uses the new humanised Sidebar */}
+        <Sidebar />
         <main className="flex-1 p-4 md:p-6 lg:p-8">
           {children}
         </main>
@@ -82,7 +98,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 // ============================================
-// 🔒 PROTECTED ROUTE (unchanged)
+// 🔒 PROTECTED ROUTE
 // ============================================
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
@@ -91,7 +107,16 @@ const ProtectedRoute: React.FC<{
 }> = ({ children, allowedRoles, redirectTo = '/login' }) => {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) { /* ... */ }
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#1A365D] border-t-transparent"></div>
+          <p className="mt-3 text-sm font-medium text-slate-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) return <Navigate to={redirectTo} replace />;
 

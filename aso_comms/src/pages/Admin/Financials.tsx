@@ -195,7 +195,10 @@ const Financials: React.FC = () => {
     return acc;
   }, {});
 
-  const paymentStatusData = Object.entries(paymentStatusCounts).map(([status, count]) => ({ status, count }));
+  const paymentStatusData = Object.entries(paymentStatusCounts).map(([status, count]) => ({
+    status,
+    count: count as number
+  }));
 
   // Income by category (Repairs vs Other)
   const incomeByCategory = transactions
@@ -342,6 +345,13 @@ const Financials: React.FC = () => {
     setIsModalOpen(true);
   };
 
+
+  // ✅ FIX: Simple label formatter for Pie Charts
+  const renderPieLabel = (entry: any) => {
+    const { category, percent } = entry;
+    return `${category}: ${(percent * 100).toFixed(0)}%`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -434,7 +444,7 @@ const Financials: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip formatter={(value) => `₦${value.toLocaleString()}`} />
+                  <Tooltip formatter={(value) => `₦${Number(value).toLocaleString()}`} />
                   <Legend />
                   <Bar dataKey="income" fill="#10B981" name="Income" />
                   <Bar dataKey="expense" fill="#EF4444" name="Expenses" />
@@ -460,13 +470,14 @@ const Financials: React.FC = () => {
                           cx="50%"
                           cy="50%"
                           outerRadius={80}
-                          label={({ category, percent }) => `${category}: ${(percent * 100).toFixed(0)}%`}
+                          label={renderPieLabel}
+                          labelLine={true}
                         >
                           {incomeCategoryData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value) => `₦${value.toLocaleString()}`} />
+                        <Tooltip formatter={(value) => `₦${Number(value).toLocaleString()}`} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -489,13 +500,14 @@ const Financials: React.FC = () => {
                           cx="50%"
                           cy="50%"
                           outerRadius={80}
-                          label={({ category, percent }) => `${category}: ${(percent * 100).toFixed(0)}%`}
+                          label={renderPieLabel}
+                          labelLine={true}
                         >
                           {expenseCategoryData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value) => `₦${value.toLocaleString()}`} />
+                        <Tooltip formatter={(value) => `₦${Number(value).toLocaleString()}`} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -510,21 +522,26 @@ const Financials: React.FC = () => {
                 <p className="text-sm text-slate-500">No payment data available.</p>
               ) : (
                 <div className="flex flex-wrap gap-3">
-                  {paymentStatusData.map((item) => (
-                    <div
-                      key={item.status}
-                      className={`px-4 py-2 rounded-full text-sm font-bold border ${item.status === 'Paid in Full'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : item.status === 'Partial / Deposit Logged'
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : item.status === 'Unpaid'
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-slate-50 text-slate-700 border-slate-200'
-                        }`}
-                    >
-                      {item.status}: {item.count}
-                    </div>
-                  ))}
+                  {paymentStatusData.map((item) => {
+                    let statusClass = '';
+                    if (item.status === 'Paid in Full') {
+                      statusClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    } else if (item.status === 'Partial / Deposit Logged') {
+                      statusClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                    } else if (item.status === 'Unpaid') {
+                      statusClass = 'bg-red-50 text-red-700 border-red-200';
+                    } else {
+                      statusClass = 'bg-slate-50 text-slate-700 border-slate-200';
+                    }
+                    return (
+                      <div
+                        key={item.status}
+                        className={`px-4 py-2 rounded-full text-sm font-bold border ${statusClass}`}
+                      >
+                        {item.status}: {item.count}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

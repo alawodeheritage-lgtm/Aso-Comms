@@ -1,9 +1,9 @@
 // src/App.tsx or src/Layout.tsx
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
-import Navbar from './components/Navbar';
-import { useAuth } from './context/AuthContext';
+import Sidebar from './Sidebar';
+import Navbar from './Navbar';
+import { useAuth } from '../context/AuthContext';
 
 const Layout: React.FC = () => {
   const { user } = useAuth();

@@ -11,6 +11,19 @@ import { repairsAPI } from '../../api/repairs';
 import { complaintsAPI } from '../../api/complaints';
 import { expensesAPI } from '../../api/expenses';
 
+// ✅ ADD MISSING INTERFACE FOR METRIC CARD
+interface MetricCardProps {
+  label: string;
+  value: string;
+  icon: string;
+  color?: string;
+  bgColor?: string;
+  trend?: {
+    value: string;
+    direction: 'up' | 'down';
+  };
+}
+
 interface DashboardStats {
   totalComplaints: number;
   activeRepairs: number;
@@ -145,7 +158,21 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const metrics = [
+  // ✅ FIX: Custom label formatter for Pie Chart
+  const renderPieLabel = ({ status, percent }: { status: string; percent: number }) => {
+    return `${status}: ${(percent * 100).toFixed(0)}%`;
+  };
+
+  // ✅ FIX: Custom tooltip formatter for Pie Chart
+  const renderPieTooltip = ({ payload }: any) => {
+    if (payload && payload.length) {
+      const data = payload[0].payload;
+      return `${data.status}: ${data.count} repairs`;
+    }
+    return null;
+  };
+
+  const metrics: MetricCardProps[] = [
     { label: 'TOTAL COMPLAINTS', value: stats.totalComplaints.toString(), icon: 'chat', trend: { value: '+12.4%', direction: 'up' as const } },
     { label: 'ACTIVE REPAIRS', value: stats.activeRepairs.toString(), icon: 'build', color: 'text-blue-600', bgColor: 'bg-blue-50' },
     { label: 'SLA ADHERENCE', value: stats.slaAdherence, icon: 'check_circle', color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
@@ -179,8 +206,8 @@ const AdminDashboard: React.FC = () => {
                 key={range}
                 onClick={() => setTimeRange(range)}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${timeRange === range
-                    ? 'bg-[#1A365D] text-white shadow-sm'
-                    : 'text-slate-600 hover:text-[#1A365D] hover:bg-slate-50'
+                  ? 'bg-[#1A365D] text-white shadow-sm'
+                  : 'text-slate-600 hover:text-[#1A365D] hover:bg-slate-50'
                   }`}
               >
                 {range === '7d' ? 'Last 7 Days' : range === '30d' ? '30 Days' : 'YTD'}
@@ -226,7 +253,7 @@ const AdminDashboard: React.FC = () => {
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                 <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(value) => `₦${value.toLocaleString()}`} />
+                <Tooltip formatter={(value) => `₦${Number(value).toLocaleString()}`} />
                 <Legend />
                 <Line yAxisId="left" type="monotone" dataKey="repairs" stroke="#1A365D" strokeWidth={2} name="Repairs" />
                 <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2} name="Revenue (₦)" />
@@ -234,6 +261,7 @@ const AdminDashboard: React.FC = () => {
             </ResponsiveContainer>
           </div>
 
+          {/* Repair Status Distribution */}
           {/* Repair Status Distribution */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
             <h3 className="text-sm font-bold text-[#1A365D] mb-4">Repair Status</h3>
@@ -246,13 +274,14 @@ const AdminDashboard: React.FC = () => {
                   cx="50%"
                   cy="50%"
                   outerRadius={80}
-                  label={({ status, percent }) => `${status}: ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  labelLine={true}
                 >
                   {stats.repairStatusCounts.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value, name) => [`${value} repairs`, name]} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -266,10 +295,10 @@ const AdminDashboard: React.FC = () => {
               <div
                 key={item.status}
                 className={`px-4 py-2 rounded-full text-sm font-bold border ${item.status === 'Paid in Full'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : item.status === 'Partial / Deposit Logged'
-                      ? 'bg-amber-50 text-amber-700 border-amber-200'
-                      : 'bg-red-50 text-red-700 border-red-200'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : item.status === 'Partial / Deposit Logged'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-red-50 text-red-700 border-red-200'
                   }`}
               >
                 {item.status}: {item.count}
