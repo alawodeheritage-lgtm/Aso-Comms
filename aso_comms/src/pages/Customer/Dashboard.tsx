@@ -6,7 +6,7 @@ import StatusBadge from '../../components/StatusBadge';
 import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { complaintsAPI } from '../../api/complaints';
-import { repairsAPI } from '../../api/repairs';
+// import { repairsAPI } from '../../api/repairs';
 import { api } from '../../api/axios';
 
 interface Complaint {
@@ -98,7 +98,7 @@ const CustomerDashboard: React.FC = () => {
           const linkResponse = await api.get('/dashboard/link-repairs');
           console.log('🔗 Link Repairs Response:', linkResponse.data);
         } catch (linkErr) {
-          console.log('⚠️ Link repairs error:', linkErr.response?.data || linkErr.message);
+          console.log('⚠️ Link repairs error:', linkErr);
         }
 
         const repairsRes = await api.get('/dashboard');

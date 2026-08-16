@@ -7,6 +7,7 @@ interface User {
   username: string;
   email: string;
   role: 'customer' | 'manager' | 'ceo';
+  avatar?: string; // ← ADD THIS
   phoneNumber?: string;
   status: string;
   isVerified: boolean;
