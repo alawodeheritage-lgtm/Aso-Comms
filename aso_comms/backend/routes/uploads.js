@@ -3,10 +3,10 @@ const express = require('express');
 const router = express.Router();
 const { uploadSingle, uploadMultiple, deleteFromCloudinary } = require('../config/cloudinary');
 const { isLoggedIn } = require('../middleware');
-const catchAsync = require('../utils/CatchAsync');
+const CatchAsync = require('../utils/CatchAsync');
 
 // Upload single file
-router.post('/single', isLoggedIn, catchAsync(async (req, res) => {
+router.post('/single', isLoggedIn, CatchAsync(async (req, res) => {
     uploadSingle(req, res, async (err) => {
         if (err) {
             return res.status(400).json({ error: err.message });
@@ -35,7 +35,7 @@ router.post('/single', isLoggedIn, catchAsync(async (req, res) => {
 
 // Upload multiple files
 // backend/routes/uploads.js
-router.post('/multiple', isLoggedIn, catchAsync(async (req, res) => {
+router.post('/multiple', isLoggedIn, CatchAsync(async (req, res) => {
     // console.log('📤 Upload multiple files request received');
     // console.log('📤 Files:', req.files);
 
@@ -72,7 +72,7 @@ router.post('/multiple', isLoggedIn, catchAsync(async (req, res) => {
 }));
 
 // Delete file from Cloudinary
-router.delete('/:publicId', isLoggedIn, catchAsync(async (req, res) => {
+router.delete('/:publicId', isLoggedIn, CatchAsync(async (req, res) => {
     const { publicId } = req.params;
 
     const result = await deleteFromCloudinary(publicId);

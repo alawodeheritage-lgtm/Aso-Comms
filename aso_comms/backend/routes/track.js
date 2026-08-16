@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const Repair = require('../models/repair');
-const catchAsync = require('../utils/CatchAsync');
+const CatchAsync = require('../utils/CatchAsync');
 const rateLimit = require('express-rate-limit');
 
 const trackLimiter = rateLimit({
@@ -20,7 +20,7 @@ router.get('/', (req, res) => {
     });
 });
 
-router.get('/results', trackLimiter, catchAsync(async (req, res) => {
+router.get('/results', trackLimiter, CatchAsync(async (req, res) => {
     const { ticketId } = req.query;
 
     if (!ticketId || ticketId.trim() === "") {

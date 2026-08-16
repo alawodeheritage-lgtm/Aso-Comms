@@ -4,10 +4,10 @@ const router = express.Router();
 const Repair = require('../models/repair');
 const User = require('../models/user');
 const { isLoggedIn, checkAccountStatus } = require('../middleware');
-const catchAsync = require('../utils/CatchAsync');
+const CatchAsync = require('../utils/CatchAsync');
 
 // Route: GET /dashboard
-router.get('/', isLoggedIn, checkAccountStatus, catchAsync(async (req, res) => {
+router.get('/', isLoggedIn, checkAccountStatus, CatchAsync(async (req, res) => {
     let repairs = [];
 
     if (req.user.role === 'customer') {
@@ -78,7 +78,7 @@ router.get('/', isLoggedIn, checkAccountStatus, catchAsync(async (req, res) => {
 }));
 
 // Route: GET /dashboard/link-repairs
-router.get('/link-repairs', isLoggedIn, checkAccountStatus, catchAsync(async (req, res) => {
+router.get('/link-repairs', isLoggedIn, checkAccountStatus, CatchAsync(async (req, res) => {
     const userId = req.user._id;
     const userEmail = req.user.email?.toLowerCase().trim();
     const userPhone = req.user.phoneNumber?.trim();
