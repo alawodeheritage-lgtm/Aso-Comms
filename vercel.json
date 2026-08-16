@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm install && npx vite build --mode production --emptyOutDir",
+  "buildCommand": "npm install && npx tsc --noEmit && npx vite build --mode production --emptyOutDir",
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
