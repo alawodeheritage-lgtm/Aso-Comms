@@ -6,10 +6,11 @@ interface User {
   _id: string;
   username: string;
   email: string;
-  role: 'customer' | 'manager' | 'ceo';
-  avatar?: string; // ← ADD THIS
   phoneNumber?: string;
-  status: string;
+  role: 'customer' | 'manager' | 'ceo';
+  avatar?: string;
+  isStaff?: boolean;
+  status?: string;
   isVerified: boolean;
 }
 
@@ -20,6 +21,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<any>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
+  updateUser: (data: Partial<User>) => Promise<void>; // ✅ ADDED
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,7 +75,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.data.success && response.data.user) {
         console.log('✅ AuthProvider: Login successful for:', response.data.user.username);
         setUser(response.data.user);
-        // Return the full response so the Login component can check verification status
         return response.data;
       } else {
         console.log('❌ AuthProvider: Login failed - no user data');
@@ -98,8 +99,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // ✅ ADD THIS FUNCTION
+  const updateUser = async (data: Partial<User>) => {
+    try {
+      console.log('🔄 Updating user profile...');
+      const response = await api.patch('/api/users/profile', data);
+
+      if (response.data.success && response.data.user) {
+        console.log('✅ User updated successfully');
+        setUser(response.data.user);
+      } else {
+        throw new Error('Failed to update user');
+      }
+    } catch (err: any) {
+      console.error('❌ Update user error:', err);
+      throw err;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, error, login, logout, setUser }}>
+    <AuthContext.Provider value={{
+      user,
+      isLoading,
+      error,
+      login,
+      logout,
+      setUser,
+      updateUser // ✅ ADDED
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,3 @@
-// src/components/StatusBadge.tsx
 import React from 'react';
 
 interface StatusBadgeProps {

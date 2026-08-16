@@ -270,7 +270,7 @@ const AdminRepairs: React.FC = () => {
         customerEmail: email.trim().toLowerCase(),
         deviceModel: device.trim(),
         issueDescription: issue.trim(),
-        status: 'Pending',
+        status: 'Pending' as const,
         priority: priority,
         assignedTo: assignedTo,
         financials: {
@@ -337,20 +337,25 @@ const AdminRepairs: React.FC = () => {
     setPriority((repair.priority || 'medium') as 'low' | 'medium' | 'high');
     setAssignedTo(repair.assignedTo || 'Unassigned');
 
-    const financials = repair.financials || { totalEstimate: 0, amountPaid: 0 };
+    const financials = repair.financials || {
+      totalEstimate: 0,
+      amountPaid: 0,
+      balanceDue: 0,
+      paymentStatus: 'Unpaid' as const
+    };
     setTotalEstimate(financials.totalEstimate || 0);
     setAmountPaid(financials.amountPaid || 0);
     setBalanceDue(financials.balanceDue || 0);
     setPaymentStatus(financials.paymentStatus || 'Unpaid');
 
     if (repair.images && repair.images.length > 0) {
-      const imageUrls = repair.images.map(img => typeof img === 'string' ? img : img.url);
+      const imageUrls = repair.images.map(img => typeof img === 'string' ? img : (img as any).url || '');
       setImages(imageUrls);
       const existingImages = repair.images.map(img => {
         if (typeof img === 'string') {
           return { url: img };
         }
-        return img;
+        return img as any;
       });
       setRepairImages(existingImages);
     }
@@ -515,8 +520,8 @@ const AdminRepairs: React.FC = () => {
               key={filter}
               onClick={() => setActiveFilter(filter)}
               className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${activeFilter === filter
-                  ? 'bg-[#1A365D] text-white shadow-sm'
-                  : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 hover:text-[#1A365D]'
+                ? 'bg-[#1A365D] text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 hover:text-[#1A365D]'
                 }`}
             >
               {filter === 'all' ? 'All' : filter}
@@ -567,8 +572,8 @@ const AdminRepairs: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wider ${repair.priority === 'high' ? 'text-red-700 bg-red-50 border-red-200/60' :
-                        repair.priority === 'medium' ? 'text-amber-800 bg-amber-50 border-amber-200/60' :
-                          'text-slate-600 bg-slate-100 border-slate-200'
+                      repair.priority === 'medium' ? 'text-amber-800 bg-amber-50 border-amber-200/60' :
+                        'text-slate-600 bg-slate-100 border-slate-200'
                       }`}>
                       {repair.priority || 'medium'}
                     </span>
@@ -849,8 +854,8 @@ const AdminRepairs: React.FC = () => {
                       onClick={() => handleStatusChange(selectedRepair._id, status.value)}
                       disabled={statusChangeLoading || selectedRepair.status === status.value}
                       className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${selectedRepair.status === status.value
-                          ? `${status.color} cursor-default opacity-70`
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-blue-300'
+                        ? `${status.color} cursor-default opacity-70`
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-blue-300'
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {status.label}
