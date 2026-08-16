@@ -13,7 +13,7 @@ import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 import ResetPassword from './pages/Auth/ResetPassword';
-import VerifyOTP from './pages/Auth/VerifyOTP';
+import VerifyOTP from './pages/Auth/verifyOTP';
 
 // Public Pages
 import LandingPage from './components/LandingPage';
