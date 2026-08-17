@@ -63,7 +63,7 @@ const Financials: React.FC = () => {
   const fetchFinancialData = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching financial data...');
+      // console.log('🔄 Fetching financial data...');
 
       const [transactionsRes, expensesRes, repairsRes] = await Promise.all([
         transactionsAPI.getAll(),
@@ -71,9 +71,9 @@ const Financials: React.FC = () => {
         repairsAPI.getAll()
       ]);
 
-      console.log('📊 Transactions:', transactionsRes);
-      console.log('📊 Expenses:', expensesRes);
-      console.log('📊 Repairs:', repairsRes);
+      // console.log('📊 Transactions:', transactionsRes);
+      // console.log('📊 Expenses:', expensesRes);
+      // console.log('📊 Repairs:', repairsRes);
 
       let transactionData: Transaction[] = [];
 
@@ -148,10 +148,10 @@ const Financials: React.FC = () => {
 
       transactionData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-      console.log(`📊 Total transactions: ${transactionData.length}`);
+      // console.log(`📊 Total transactions: ${transactionData.length}`);
       setTransactions(transactionData);
     } catch (err: any) {
-      console.error('❌ Failed to fetch financial data:', err);
+      // console.error('❌ Failed to fetch financial data:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to load financial data. Please refresh.',
         type: 'error'

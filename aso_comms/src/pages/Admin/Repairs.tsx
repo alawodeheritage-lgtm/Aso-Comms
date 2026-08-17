@@ -168,7 +168,7 @@ const AdminRepairs: React.FC = () => {
       setLoading(true);
       setError('');
       const response = await repairsAPI.getAll();
-      console.log('Raw API response:', response);
+      // console.log('Raw API response:', response);
 
       let repairsData = [];
       if (response.repairs) {
@@ -183,7 +183,7 @@ const AdminRepairs: React.FC = () => {
 
       setRepairs(Array.isArray(repairsData) ? repairsData : []);
     } catch (err: any) {
-      console.error('Failed to fetch repairs:', err);
+      // console.error('Failed to fetch repairs:', err);
       setError(err.message || 'Failed to load repairs. Please refresh.');
       setToast({
         message: err.response?.data?.error || 'Failed to load repairs. Please refresh.',
@@ -204,7 +204,7 @@ const AdminRepairs: React.FC = () => {
     setStatusChangeLoading(true);
     try {
       const response = await repairsAPI.updateStatus(repairId, newStatus);
-      console.log('Status updated:', response);
+      // console.log('Status updated:', response);
 
       setRepairs(prevRepairs =>
         prevRepairs.map(repair =>
@@ -225,7 +225,7 @@ const AdminRepairs: React.FC = () => {
 
       await fetchRepairs();
     } catch (err: any) {
-      console.error('Failed to update status:', err);
+      // console.error('Failed to update status:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to update status. Please try again.',
         type: 'error'
@@ -280,10 +280,10 @@ const AdminRepairs: React.FC = () => {
         images: repairImages.map(img => img.url)
       };
 
-      console.log('📤 Sending repair data:', JSON.stringify(repairData, null, 2));
+      // console.log('📤 Sending repair data:', JSON.stringify(repairData, null, 2));
 
       const response = await repairsAPI.create(repairData);
-      console.log('✅ Repair saved successfully:', response);
+      // console.log('✅ Repair saved successfully:', response);
 
       const newRepair = response.repair || response;
 
@@ -293,7 +293,7 @@ const AdminRepairs: React.FC = () => {
 
       setToast({ message: 'Repair logged successfully! 🎉', type: 'success' });
     } catch (err: any) {
-      console.error('❌ Failed to create repair:', err);
+      // console.error('❌ Failed to create repair:', err);
       const errorMessage = err.response?.data?.error ||
         err.response?.data?.message ||
         err.message ||
@@ -397,17 +397,17 @@ const AdminRepairs: React.FC = () => {
         images: repairImages.map(img => img.url)
       };
 
-      console.log('📤 Updating repair data:', JSON.stringify(updateData, null, 2));
+      // console.log('📤 Updating repair data:', JSON.stringify(updateData, null, 2));
 
       const response = await repairsAPI.update(editingRepair._id, updateData);
-      console.log('✅ Repair updated successfully:', response);
+      // console.log('✅ Repair updated successfully:', response);
 
       await fetchRepairs();
       handleCloseModal();
 
       setToast({ message: 'Repair updated successfully! 🎉', type: 'success' });
     } catch (err: any) {
-      console.error('❌ Failed to update repair:', err);
+      // console.error('❌ Failed to update repair:', err);
       const errorMessage = err.response?.data?.error ||
         err.response?.data?.message ||
         err.message ||
@@ -790,7 +790,7 @@ const AdminRepairs: React.FC = () => {
                 </label>
                 <ImageUpload
                   onUploadComplete={(files) => {
-                    console.log('📸 Images uploaded:', files);
+                    // console.log('📸 Images uploaded:', files);
                     setRepairImages(files);
                     const urls = files.map(f => f.url);
                     setImages(urls);
@@ -931,7 +931,7 @@ const AdminRepairs: React.FC = () => {
                             alt={`Device photo ${index + 1}`}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             onError={(e) => {
-                              console.error('Image failed to load:', imageUrl);
+                              // console.error('Image failed to load:', imageUrl);
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
                               const parent = target.parentElement;
@@ -1203,7 +1203,7 @@ const AdminRepairs: React.FC = () => {
                 </label>
                 <ImageUpload
                   onUploadComplete={(files) => {
-                    console.log('📸 Images uploaded:', files);
+                    // console.log('📸 Images uploaded:', files);
                     setRepairImages(files);
                     const urls = files.map(f => f.url);
                     setImages(urls);

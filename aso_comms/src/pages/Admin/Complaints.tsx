@@ -69,9 +69,9 @@ const AdminComplaints: React.FC = () => {
   const fetchComplaints = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching complaints from backend...');
+      // console.log('🔄 Fetching complaints from backend...');
       const response = await complaintsAPI.getAll();
-      console.log('✅ Raw API response:', response);
+      // console.log('✅ Raw API response:', response);
 
       let complaintsData = [];
       if (response.complaints) {
@@ -84,10 +84,10 @@ const AdminComplaints: React.FC = () => {
         complaintsData = [];
       }
 
-      console.log(`📊 Found ${complaintsData.length} complaints`);
+      // console.log(`📊 Found ${complaintsData.length} complaints`);
       setComplaints(Array.isArray(complaintsData) ? complaintsData : []);
     } catch (err: any) {
-      console.error('❌ Failed to fetch complaints:', err);
+      // console.error('❌ Failed to fetch complaints:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to load complaints. Please refresh.',
         type: 'error'
@@ -127,7 +127,7 @@ const AdminComplaints: React.FC = () => {
         status: status as 'Open' | 'Under Review' | 'Escalated' | 'Resolved',
         resolutionNotes: notes || resolutionNotes || `Status updated to ${status}`
       });
-      console.log('Status updated:', response);
+      // console.log('Status updated:', response);
 
       setComplaints((prev) =>
         prev.map((c) =>
@@ -161,7 +161,7 @@ const AdminComplaints: React.FC = () => {
       setResolutionNotes('');
       await fetchComplaints();
     } catch (err: any) {
-      console.error('Failed to update status:', err);
+      // console.error('Failed to update status:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to update status.',
         type: 'error'
@@ -280,8 +280,8 @@ const AdminComplaints: React.FC = () => {
               key={filter}
               onClick={() => setActiveFilter(filter)}
               className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${activeFilter === filter
-                  ? 'bg-[#1A365D] text-white shadow-sm'
-                  : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 hover:text-[#1A365D]'
+                ? 'bg-[#1A365D] text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 hover:text-[#1A365D]'
                 }`}
             >
               {filter === 'all' ? 'All' : filter}
@@ -424,8 +424,8 @@ const AdminComplaints: React.FC = () => {
                         }}
                         disabled={selectedComplaint.status === status.value || submitLoading}
                         className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${selectedComplaint.status === status.value
-                            ? `${status.color} cursor-default opacity-70`
-                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-blue-300'
+                          ? `${status.color} cursor-default opacity-70`
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-blue-300'
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         {status.label}

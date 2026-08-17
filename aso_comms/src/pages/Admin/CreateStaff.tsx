@@ -47,15 +47,15 @@ const CreateStaff: React.FC = () => {
     setLoading(true);
 
     try {
-      console.log('📤 Creating staff with data:', {
-        username: formData.username,
-        email: formData.email,
-        role: formData.role,
-        phoneNumber: formData.phoneNumber
-      });
+      //  console.log('📤 Creating staff with data:', {
+      //   username: formData.username,
+      //   email: formData.email,
+      //   role: formData.role,
+      //   phoneNumber: formData.phoneNumber
+      // });
 
       const response = await api.post('/admin/create-staff', formData);
-      console.log('✅ Staff created:', response.data);
+      // console.log('✅ Staff created:', response.data);
 
       setToast({
         message: `Staff account created successfully! OTP sent to ${formData.email}`,
@@ -78,7 +78,7 @@ const CreateStaff: React.FC = () => {
         setTimeout(() => navigate('/admin'), 2000);
       }
     } catch (err: any) {
-      console.error('❌ Failed to create staff:', err);
+      // console.error('❌ Failed to create staff:', err);
       const errorMessage = err.response?.data?.error ||
         err.response?.data?.message ||
         'Failed to create staff account. Please try again.';

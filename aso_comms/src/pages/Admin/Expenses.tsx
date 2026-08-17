@@ -55,9 +55,9 @@ const AdminExpenses: React.FC = () => {
   const fetchExpenses = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching expenses from backend...');
+      // console.log('🔄 Fetching expenses from backend...');
       const response = await expensesAPI.getAll();
-      console.log('✅ Raw API response:', response);
+      // console.log('✅ Raw API response:', response);
 
       let expensesData = [];
       if (response.expenses) {
@@ -70,10 +70,10 @@ const AdminExpenses: React.FC = () => {
         expensesData = [];
       }
 
-      console.log(`📊 Found ${expensesData.length} expenses`);
+      // console.log(`📊 Found ${expensesData.length} expenses`);
       setExpenses(Array.isArray(expensesData) ? expensesData : []);
     } catch (err: any) {
-      console.error('❌ Failed to fetch expenses:', err);
+      // console.error('❌ Failed to fetch expenses:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to load expenses. Please refresh.',
         type: 'error'
@@ -109,13 +109,13 @@ const AdminExpenses: React.FC = () => {
   const handleApprove = async (id: string) => {
     try {
       const response = await expensesAPI.updateStatus(id, 'approved');
-      console.log('Expense approved:', response);
+      // console.log('Expense approved:', response);
       setExpenses((prev) =>
         prev.map((item) => (item._id === id ? { ...item, status: 'approved' } : item))
       );
       setToast({ message: 'Expense approved successfully!', type: 'success' });
     } catch (err: any) {
-      console.error('Failed to approve expense:', err);
+      // console.error('Failed to approve expense:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to approve expense.',
         type: 'error'
@@ -126,13 +126,13 @@ const AdminExpenses: React.FC = () => {
   const handleReject = async (id: string) => {
     try {
       const response = await expensesAPI.updateStatus(id, 'rejected');
-      console.log('Expense rejected:', response);
+      // console.log('Expense rejected:', response);
       setExpenses((prev) =>
         prev.map((item) => (item._id === id ? { ...item, status: 'rejected' } : item))
       );
       setToast({ message: 'Expense rejected.', type: 'info' });
     } catch (err: any) {
-      console.error('Failed to reject expense:', err);
+      // console.error('Failed to reject expense:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to reject expense.',
         type: 'error'
@@ -146,7 +146,7 @@ const AdminExpenses: React.FC = () => {
     setDeleteLoading(true);
     try {
       await expensesAPI.delete(expenseToDelete._id);
-      console.log('Expense deleted successfully');
+      // console.log('Expense deleted successfully');
       setExpenses((prev) => prev.filter((item) => item._id !== expenseToDelete._id));
       setIsDeleteModalOpen(false);
       setIsViewModalOpen(false);
@@ -155,7 +155,7 @@ const AdminExpenses: React.FC = () => {
       setToast({ message: 'Expense deleted successfully!', type: 'success' });
       await fetchExpenses();
     } catch (err: any) {
-      console.error('Failed to delete expense:', err);
+      // console.error('Failed to delete expense:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to delete expense.',
         type: 'error'
@@ -187,10 +187,10 @@ const AdminExpenses: React.FC = () => {
         notes: newNotes.trim() || undefined,
       };
 
-      console.log('📤 Sending expense data:', expenseData);
+      // console.log('📤 Sending expense data:', expenseData);
 
       const response = await expensesAPI.create(expenseData);
-      console.log('✅ Expense saved successfully:', response);
+      // console.log('✅ Expense saved successfully:', response);
 
       const newExpense = response.expense || response;
 
@@ -206,7 +206,7 @@ const AdminExpenses: React.FC = () => {
 
       setToast({ message: 'Expense logged successfully! 🎉', type: 'success' });
     } catch (err: any) {
-      console.error('Failed to create expense:', err);
+      // console.error('Failed to create expense:', err);
 
       const errorMessage = err.response?.data?.error ||
         err.response?.data?.message ||

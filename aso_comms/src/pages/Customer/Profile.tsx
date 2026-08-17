@@ -69,11 +69,11 @@ const CustomerProfile: React.FC = () => {
   const fetchCustomerProfile = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching customer profile...');
+      // console.log('🔄 Fetching customer profile...');
 
       const userResponse = await api.get('/api/current-user');
       const currentUser = userResponse.data.user;
-      console.log('👤 Current user:', currentUser);
+      // console.log('👤 Current user:', currentUser);
 
       const [repairsRes, complaintsRes] = await Promise.all([
         api.get('/repairs?filter=user'),
@@ -147,9 +147,9 @@ const CustomerProfile: React.FC = () => {
         location: profileData.location,
       });
 
-      console.log('✅ Customer profile loaded:', profileData);
+      // console.log('✅ Customer profile loaded:', profileData);
     } catch (err: any) {
-      console.error('❌ Failed to fetch customer profile:', err);
+      // console.error('❌ Failed to fetch customer profile:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to load profile data.',
         type: 'error'
@@ -188,7 +188,7 @@ const CustomerProfile: React.FC = () => {
         location: data.location,
       });
 
-      console.log('✅ Profile updated:', response.data);
+      // console.log('✅ Profile updated:', response.data);
 
       if (updateUser) {
         updateUser({
@@ -214,7 +214,7 @@ const CustomerProfile: React.FC = () => {
       });
       await fetchCustomerProfile();
     } catch (err: any) {
-      console.error('❌ Failed to update profile:', err);
+      // console.error('❌ Failed to update profile:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to update profile.',
         type: 'error'
@@ -368,10 +368,10 @@ const CustomerProfile: React.FC = () => {
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
                   <h2 className="text-2xl md:text-3xl font-display font-extrabold tracking-tight">{profile.name}</h2>
                   <span className={`px-3 py-0.5 rounded-full text-[11px] font-bold ${profile.status === 'Premium'
-                      ? 'bg-yellow-400 text-yellow-900'
-                      : profile.status === 'Standard'
-                        ? 'bg-blue-400 text-blue-900'
-                        : 'bg-slate-400 text-slate-900'
+                    ? 'bg-yellow-400 text-yellow-900'
+                    : profile.status === 'Standard'
+                      ? 'bg-blue-400 text-blue-900'
+                      : 'bg-slate-400 text-slate-900'
                     }`}>
                     {profile.status}
                   </span>

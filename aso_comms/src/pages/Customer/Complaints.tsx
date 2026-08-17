@@ -97,11 +97,11 @@ const CustomerComplaints: React.FC = () => {
   // ========== LOGIC (COMPLETELY UNCHANGED) ==========
   const fetchUserRepairs = async () => {
     try {
-      console.log('🔄 Fetching user repairs with strict matching...');
+      // console.log('🔄 Fetching user repairs with strict matching...');
       const response = await api.get('/dashboard');
-      console.log('📊 Dashboard Response:', response.data);
+      // console.log('📊 Dashboard Response:', response.data);
       const repairsData = response.data.repairs || [];
-      console.log('📊 Strictly matched repairs:', repairsData.length);
+      // console.log('📊 Strictly matched repairs:', repairsData.length);
       setUserRepairs(repairsData);
       if (repairsData.length === 0) {
         setToast({
@@ -110,29 +110,29 @@ const CustomerComplaints: React.FC = () => {
         });
       }
     } catch (err) {
-      console.error('Failed to fetch repairs:', err);
+      // console.error('Failed to fetch repairs:', err);
     }
   };
 
   const fetchComplaints = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching complaints...');
+      // console.log('🔄 Fetching complaints...');
       if (!user?._id) {
-        console.log('❌ No user logged in');
+        // console.log('❌ No user logged in');
         setComplaints([]);
         setLoading(false);
         return;
       }
       const response = await complaintsAPI.getAll();
-      console.log('📊 API Response:', response);
+      // console.log('📊 API Response:', response);
       const complaintsData = response.complaints || [];
       const isManagement = response.isManagement || false;
       setIsManagement(isManagement);
-      console.log(`📊 Found ${complaintsData.length} complaints`);
+      // console.log(`📊 Found ${complaintsData.length} complaints`);
       setComplaints(complaintsData);
     } catch (err: any) {
-      console.error('❌ Failed to fetch complaints:', err);
+      // console.error('❌ Failed to fetch complaints:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to load complaints.',
         type: 'error'
@@ -146,12 +146,12 @@ const CustomerComplaints: React.FC = () => {
     if (!ticketId || ticketId.trim() === '') return;
     setSearchingTicket(true);
     try {
-      console.log('🔍 Searching for ticket:', ticketId);
+      // console.log('🔍 Searching for ticket:', ticketId);
       const foundRepair = userRepairs.find(
         (r) => r.ticketId?.toUpperCase() === ticketId.trim().toUpperCase()
       );
       if (foundRepair) {
-        console.log('✅ Found repair:', foundRepair);
+        // console.log('✅ Found repair:', foundRepair);
         setSelectedRepair(foundRepair);
         setFormData(prev => ({
           ...prev,
@@ -170,7 +170,7 @@ const CustomerComplaints: React.FC = () => {
         });
       }
     } catch (err) {
-      console.error('Error fetching ticket details:', err);
+      // console.error('Error fetching ticket details:', err);
     } finally {
       setSearchingTicket(false);
     }
@@ -256,9 +256,9 @@ const CustomerComplaints: React.FC = () => {
           originalName: img.originalName
         }))
       };
-      console.log('📤 Submitting complaint:', complaintData);
+      // console.log('📤 Submitting complaint:', complaintData);
       const response = await complaintsAPI.create(complaintData);
-      console.log('✅ Complaint submitted:', response);
+      // console.log('✅ Complaint submitted:', response);
       setToast({ message: 'Complaint submitted successfully!', type: 'success' });
       setFormData({
         ticketId: '',
@@ -273,7 +273,7 @@ const CustomerComplaints: React.FC = () => {
       setActiveTab('list');
       await fetchComplaints();
     } catch (err: any) {
-      console.error('❌ Failed to submit complaint:', err);
+      // console.error('❌ Failed to submit complaint:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to submit complaint.',
         type: 'error'
@@ -294,7 +294,7 @@ const CustomerComplaints: React.FC = () => {
         status: status as 'Open' | 'Under Review' | 'Escalated' | 'Resolved',
         resolutionNotes: notes || ''
       });
-      console.log('✅ Status updated:', response);
+      // console.log('✅ Status updated:', response);
       setToast({ message: `Status updated to: ${status}`, type: 'success' });
       await fetchComplaints();
       if (selectedComplaint && selectedComplaint._id === complaintId) {
@@ -305,7 +305,7 @@ const CustomerComplaints: React.FC = () => {
         });
       }
     } catch (err: any) {
-      console.error('❌ Failed to update status:', err);
+      // console.error('❌ Failed to update status:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to update status.',
         type: 'error'

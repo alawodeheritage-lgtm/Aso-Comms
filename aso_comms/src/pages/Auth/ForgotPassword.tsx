@@ -34,13 +34,13 @@ const ForgotPassword: React.FC = () => {
       if (data.success) {
         localStorage.setItem('resetEmail', email);
         setIsSubmitted(true);
-        console.log('📧 OTP for', email, 'is:', data.otp);
+        // console.log('📧 OTP for', email, 'is:', data.otp);
         navigate(`/verify-otp?email=${encodeURIComponent(email)}&purpose=reset`);
       } else {
         setError(data.error || 'Failed to send reset link. Please try again.');
       }
     } catch (err: any) {
-      console.error('Error:', err);
+      // console.error('Error:', err);
       setError('Network error. Please check if the server is running.');
     } finally {
       setIsLoading(false);

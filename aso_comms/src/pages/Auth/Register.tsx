@@ -53,8 +53,8 @@ const Register: React.FC = () => {
       const data = await response.json();
 
       if (response.ok) {
-        console.log('📧 Registration successful!');
-        console.log('🔑 Your OTP is:', data.otp);
+        // console.log('📧 Registration successful!');
+        // console.log('🔑 Your OTP is:', data.otp);
         localStorage.setItem('registerEmail', formData.email);
         navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}&purpose=signup`);
       } else {
@@ -62,7 +62,7 @@ const Register: React.FC = () => {
         setIsLoading(false);
       }
     } catch (err: any) {
-      console.error('Registration error:', err);
+      // console.error('Registration error:', err);
       setErrorMsg('Network error. Please check if the server is running.');
       setIsLoading(false);
     }

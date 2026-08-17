@@ -73,11 +73,11 @@ const AdminProfile: React.FC = () => {
   const fetchAdminProfile = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching admin profile...');
+      // console.log('🔄 Fetching admin profile...');
 
       const userResponse = await api.get('/api/current-user');
       const currentUser = userResponse.data.user;
-      console.log('👤 Current user:', currentUser);
+      // console.log('👤 Current user:', currentUser);
 
       const [repairsRes, complaintsRes, expensesRes] = await Promise.all([
         api.get('/repairs'),
@@ -154,9 +154,9 @@ const AdminProfile: React.FC = () => {
         department: profileData.department,
       });
 
-      console.log('✅ Profile data loaded:', profileData);
+      // console.log('✅ Profile data loaded:', profileData);
     } catch (err: any) {
-      console.error('❌ Failed to fetch admin profile:', err);
+      // console.error('❌ Failed to fetch admin profile:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to load profile data.',
         type: 'error'
@@ -179,7 +179,7 @@ const AdminProfile: React.FC = () => {
         phoneNumber: formData.phone,
       });
 
-      console.log('✅ Profile updated:', response.data);
+      // console.log('✅ Profile updated:', response.data);
 
       setProfile((prev) => ({
         ...prev,
@@ -193,7 +193,7 @@ const AdminProfile: React.FC = () => {
       setToast({ message: 'Profile updated successfully!', type: 'success' });
       await fetchAdminProfile();
     } catch (err: any) {
-      console.error('❌ Failed to update profile:', err);
+      // console.error('❌ Failed to update profile:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to update profile.',
         type: 'error'

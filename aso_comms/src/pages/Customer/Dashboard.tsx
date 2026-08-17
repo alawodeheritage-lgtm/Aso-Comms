@@ -90,26 +90,26 @@ const CustomerDashboard: React.FC = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        console.log('🔄 Fetching dashboard data...');
-        console.log('👤 Current user:', user);
+        // console.log('🔄 Fetching dashboard data...');
+        // console.log('👤 Current user:', user);
 
         // Link unlinked repairs
         try {
           const linkResponse = await api.get('/dashboard/link-repairs');
-          console.log('🔗 Link Repairs Response:', linkResponse.data);
+          // console.log('🔗 Link Repairs Response:', linkResponse.data);
         } catch (linkErr) {
-          console.log('⚠️ Link repairs error:', linkErr);
+          // console.log('⚠️ Link repairs error:', linkErr);
         }
 
         const repairsRes = await api.get('/dashboard');
-        console.log('📊 Dashboard Response:', repairsRes.data);
+        // console.log('📊 Dashboard Response:', repairsRes.data);
 
         const repairsData = repairsRes.data.repairs || [];
-        console.log('📊 Repairs found:', repairsData.length);
+        // console.log('📊 Repairs found:', repairsData.length);
         setRepairs(repairsData);
 
         const userTicketIds = repairsData.map((r: any) => r.ticketId).filter(Boolean);
-        console.log('🎫 User Ticket IDs:', userTicketIds);
+        // console.log('🎫 User Ticket IDs:', userTicketIds);
 
         const complaintsRes = await complaintsAPI.getAll();
         const complaintsData = complaintsRes.complaints || complaintsRes.data || [];
@@ -125,7 +125,7 @@ const CustomerDashboard: React.FC = () => {
           return ticketMatch || emailMatch || phoneMatch || nameMatch;
         });
 
-        console.log('📊 Filtered Complaints:', userComplaints.length);
+        // console.log('📊 Filtered Complaints:', userComplaints.length);
         setComplaints(userComplaints.slice(0, 3));
 
         const activeComplaints = userComplaints.filter(
@@ -198,7 +198,7 @@ const CustomerDashboard: React.FC = () => {
         setRecentActivity(activities.slice(0, 3));
 
       } catch (err: any) {
-        console.error('❌ Failed to fetch dashboard data:', err);
+        // console.error('❌ Failed to fetch dashboard data:', err);
         setStats({
           activeComplaints: '0',
           resolvedThisMonth: '0',

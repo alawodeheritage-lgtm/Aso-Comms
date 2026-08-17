@@ -129,7 +129,7 @@ const ComplaintResolution: React.FC = () => {
       setSelectedStatus(complaintData.status);
       setResolutionNotes(complaintData.resolutionNotes || '');
     } catch (err: any) {
-      console.error('❌ Failed to fetch complaint:', err);
+      // console.error('❌ Failed to fetch complaint:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to load complaint.',
         type: 'error'
@@ -164,7 +164,7 @@ const ComplaintResolution: React.FC = () => {
 
       await fetchComplaint();
     } catch (err: any) {
-      console.error('❌ Failed to update status:', err);
+      // console.error('❌ Failed to update status:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to update status.',
         type: 'error'
@@ -200,7 +200,7 @@ const ComplaintResolution: React.FC = () => {
       setSelectedStatus('Resolved');
       await fetchComplaint();
     } catch (err: any) {
-      console.error('❌ Failed to resolve complaint:', err);
+      // console.error('❌ Failed to resolve complaint:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to resolve complaint.',
         type: 'error'

@@ -38,12 +38,12 @@ const VerifyOTP: React.FC = () => {
     setIsLoading(true);
     setError('');
 
-    console.log('========================================');
-    console.log('🔑 Verifying OTP');
-    console.log('📧 Email:', email);
-    console.log('🔑 Entered OTP:', otp);
-    console.log('📧 Purpose:', purpose);
-    console.log('========================================');
+    // console.log('========================================');
+    // console.log('🔑 Verifying OTP');
+    // console.log('📧 Email:', email);
+    // console.log('🔑 Entered OTP:', otp);
+    // console.log('📧 Purpose:', purpose);
+    // console.log('========================================');
 
     try {
       const response = await fetch('http://localhost:5000/verify-otp', {
@@ -54,7 +54,7 @@ const VerifyOTP: React.FC = () => {
       });
 
       const data = await response.json();
-      console.log('📧 Verification response:', data);
+      // console.log('📧 Verification response:', data);
 
       if (data.success) {
         if (data.redirect) {
@@ -69,7 +69,7 @@ const VerifyOTP: React.FC = () => {
         setIsLoading(false);
       }
     } catch (err: any) {
-      console.error('Verification error:', err);
+      // console.error('Verification error:', err);
       setError('Network error. Please try again.');
       setIsLoading(false);
     }

@@ -15,10 +15,10 @@ const Login: React.FC = () => {
 
   // 🔒 Auth logic – unchanged
   useEffect(() => {
-    console.log('👤 Login: Auth state changed', { user: user?.username, role: user?.role, authLoading });
+    // console.log('👤 Login: Auth state changed', { user: user?.username, role: user?.role, authLoading });
 
     if (!authLoading && user) {
-      console.log('✅ Login: User already logged in, redirecting...');
+      // console.log('✅ Login: User already logged in, redirecting...');
       if (user.role === 'manager' || user.role === 'ceo') {
         navigate('/admin', { replace: true });
       } else {
@@ -38,17 +38,17 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      console.log('🔐 Attempting login with:', { username });
+      // console.log('🔐 Attempting login with:', { username });
 
       const response = await login(username.trim(), password);
-      console.log('✅ Login response:', response);
+      // console.log('✅ Login response:', response);
 
       if (response.user && !response.user.isVerified) {
         navigate(`/verify-otp?email=${encodeURIComponent(response.user.email)}&purpose=signup`);
         return;
       }
     } catch (err: any) {
-      console.error('❌ Login error:', err);
+      // console.error('❌ Login error:', err);
 
       if (err.response?.status === 403 && err.response?.data?.needsVerification) {
         navigate(`/verify-otp?email=${encodeURIComponent(err.response.data.email)}&purpose=signup`);
