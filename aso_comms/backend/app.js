@@ -51,7 +51,7 @@ const corsOptions = {
         'http://localhost:5173',
         'http://localhost:5174',
         'https://asocomms.vercel.app',
-        'https://aso-comms-six.vercel.app',  // ← ADD YOUR ACTUAL VERCEL URL
+        'https://aso-comms-six.vercel.app',
         'https://asocomms-backend.onrender.com'
     ],
     credentials: true,
