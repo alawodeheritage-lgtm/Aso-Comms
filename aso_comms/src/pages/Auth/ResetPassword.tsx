@@ -50,6 +50,16 @@ const ResetPassword: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-[#F8F6F1] px-4 py-8">
       <div className="w-full max-w-5xl rounded-2xl bg-white shadow-xl shadow-slate-200/60 overflow-hidden border border-slate-200/80 flex flex-col md:flex-row">
 
+        {/* ✅ BACK TO HOME - TOP LEFT CORNER */}
+        <Link
+          to="/login"
+          className="absolute top-8 left-4 z-10 text-slate-400 hover:text-[#1A365D] transition-colors p-2 rounded-full hover:bg-slate-100"
+          aria-label="Back to home"
+        >
+          <span className="material-symbols-outlined text-2xl">
+            arrow_back
+          </span>
+        </Link>
         {/* LEFT – Brand side (warm, human) */}
         <div className="relative md:w-2/5 bg-gradient-to-br from-[#1A365D] to-[#2D4A6B] p-8 flex flex-col items-center justify-center text-white hidden md:flex">
           <svg

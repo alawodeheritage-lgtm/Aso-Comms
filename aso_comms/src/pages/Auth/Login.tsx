@@ -15,10 +15,7 @@ const Login: React.FC = () => {
 
   // 🔒 Auth logic – unchanged
   useEffect(() => {
-    // console.log('👤 Login: Auth state changed', { user: user?.username, role: user?.role, authLoading });
-
     if (!authLoading && user) {
-      // console.log('✅ Login: User already logged in, redirecting...');
       if (user.role === 'manager' || user.role === 'ceo') {
         navigate('/admin', { replace: true });
       } else {
@@ -38,18 +35,13 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      // console.log('🔐 Attempting login with:', { username });
-
       const response = await login(username.trim(), password);
-      // console.log('✅ Login response:', response);
 
       if (response.user && !response.user.isVerified) {
         navigate(`/verify-otp?email=${encodeURIComponent(response.user.email)}&purpose=signup`);
         return;
       }
     } catch (err: any) {
-      // console.error('❌ Login error:', err);
-
       if (err.response?.status === 403 && err.response?.data?.needsVerification) {
         navigate(`/verify-otp?email=${encodeURIComponent(err.response.data.email)}&purpose=signup`);
         return;
@@ -71,11 +63,21 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8F6F1] px-4 py-8">
       {/* Main container – responsive split layout */}
-      <div className="w-full max-w-5xl rounded-2xl bg-white shadow-xl shadow-slate-200/60 overflow-hidden border border-slate-200/80 flex flex-col md:flex-row">
+      <div className="w-full max-w-5xl rounded-2xl bg-white shadow-xl shadow-slate-200/60 overflow-hidden border border-slate-200/80 flex flex-col md:flex-row relative">
 
-        {/* LEFT SIDE – Brand illustration (warm, human) */}
+        {/* ✅ BACK TO HOME - TOP LEFT CORNER */}
+        <Link
+          to="/"
+          className="absolute top-4 left-4 z-10 text-slate-400 hover:text-[#1A365D] transition-colors p-2 rounded-full hover:bg-slate-100"
+          aria-label="Back to home"
+        >
+          <span className="material-symbols-outlined text-2xl">
+            arrow_back
+          </span>
+        </Link>
+
+        {/* LEFT SIDE – Brand illustration */}
         <div className="relative md:w-2/5 bg-gradient-to-br from-[#1A365D] to-[#2D4A6B] p-8 flex flex-col items-center justify-center text-white hidden md:flex">
-          {/* Decorative abstract shape */}
           <svg
             className="absolute top-0 right-0 opacity-10"
             width="200"
@@ -104,7 +106,6 @@ const Login: React.FC = () => {
               </span>
             </div>
           </div>
-          {/* Bottom decorative line */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-20 h-1 bg-amber-400 rounded-full"></div>
         </div>
 
@@ -119,7 +120,7 @@ const Login: React.FC = () => {
 
             <div className="space-y-1">
               <h2 className="text-2xl font-display font-bold text-[#1A365D]">Welcome back</h2>
-              <p className="text-sm text-slate-500">Let’s get your devices sorted. Sign in below.</p>
+              <p className="text-sm text-slate-500">Let's get your devices sorted. Sign in below.</p>
             </div>
 
             {/* Error message */}
@@ -199,7 +200,7 @@ const Login: React.FC = () => {
                 </Link>
               </div>
 
-              {/* Submit button with hover lift */}
+              {/* Submit button */}
               <button
                 type="submit"
                 disabled={isLoading}
@@ -211,7 +212,7 @@ const Login: React.FC = () => {
                     Signing in...
                   </>
                 ) : (
-                  'Let’s go'
+                  "Let's go"
                 )}
               </button>
             </form>
@@ -227,7 +228,6 @@ const Login: React.FC = () => {
         </div>
       </div>
 
-      {/* Inline styles for custom font and animations */}
       <style>{`
         .font-display {
           font-family: 'Space Grotesk', system-ui, sans-serif;
@@ -245,7 +245,6 @@ const Login: React.FC = () => {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        /* Optional: smooth transition for card */
         .rounded-2xl {
           transition: box-shadow 0.3s ease;
         }

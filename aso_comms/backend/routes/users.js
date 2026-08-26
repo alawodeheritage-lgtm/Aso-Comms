@@ -10,7 +10,7 @@ const { isLoggedIn } = require('../middleware');
 
 // Import the auth controller for OTP generation logic
 const authController = require('../controllers/authController');
-const sendOTPEmail = require('../utils/sendEmail');
+const { sendOTPEmail, sendWelcomeEmail } = require('../utils/sendEmail');
 
 // ====== SIGN UP (REGISTER) ROUTES ======
 router.get('/register', (req, res) => {
@@ -18,21 +18,23 @@ router.get('/register', (req, res) => {
 });
 
 // POST /register - UPDATED FOR OTP
+// routes/users.js - Add ticketId during registration
+
+// routes/users.js - Add this when creating user
 router.post('/register', async (req, res) => {
   try {
     const { username, email, phoneNumber, password } = req.body;
 
-    // 1. Check if the user already exists
+    // Check existing user
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
-      // ✅ SECURITY: Use generic message to prevent email enumeration
       return res.status(400).json({
         success: false,
         error: 'Registration failed. Please check your details and try again.'
       });
     }
 
-    // 2. Check for matching repair
+    // ✅ Check for matching repair
     let matchingRepair = null;
     const cleanPhone = phoneNumber ? phoneNumber.trim() : '';
 
@@ -44,59 +46,54 @@ router.post('/register', async (req, res) => {
     }
 
     let accountStatus = 'Guest';
+    let ticketId = `USER-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+
+    // ✅ If matching repair exists, use its ticketId
     if (matchingRepair) {
       accountStatus = 'Active';
+      ticketId = matchingRepair.ticketId || ticketId;
     }
 
-    // 3. Create new user
+    // Create new user with ticketId
     const newUser = new User({
       username: username.trim(),
       email: email.toLowerCase().trim(),
       phoneNumber: cleanPhone || null,
       role: 'customer',
       status: accountStatus,
-      isVerified: false
+      isVerified: false,
+      ticketId: ticketId // ✅ Use repair ticketId if exists
     });
 
-    // 4. Register with passport
+    // Register with passport
     const registeredUser = await User.register(newUser, password);
 
-    // 5. Generate OTP
+    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const otpExpires = Date.now() + 10 * 60 * 1000;
 
-    // Save OTP to user
     registeredUser.otpCode = otp;
     registeredUser.otpExpires = otpExpires;
     await registeredUser.save();
 
-    // console.log('========================================');
-    // console.log('🔑 REGISTRATION OTP GENERATED');
-    // console.log('📧 Email:', registeredUser.email);
-    // console.log('🔑 OTP Code:', otp);
-    // console.log('⏰ Expires in 10 minutes');
-    // console.log('========================================');
-
-    // Send email
+    // Send OTP email
     try {
       await sendOTPEmail({ email: registeredUser.email, otp, type: 'signup' });
-      // console.log('✅ Registration email sent successfully');
     } catch (emailError) {
-      // console.log('❌ Email sending failed, but OTP is logged above');
+      console.log('⚠️ Email sending failed, but OTP is saved');
     }
 
-    // Return response with OTP for testing
     return res.json({
       success: true,
       message: 'Registration successful! Please verify your email.',
       email: registeredUser.email,
-      otp: otp, // Only for testing - remove in production
+      ticketId: registeredUser.ticketId,
+      otp: otp,
       redirect: `/verify-otp?email=${encodeURIComponent(registeredUser.email)}&purpose=signup`
     });
 
   } catch (e) {
     console.error('Registration error:', e);
-    // ✅ SECURITY: Generic error message
     return res.status(500).json({
       success: false,
       error: 'Registration failed. Please try again later.'
@@ -241,9 +238,86 @@ router.get('/api/current-user', (req, res) => {
 });
 
 // ====== UPDATE PROFILE ROUTE ======
+// router.patch('/api/update-profile', isLoggedIn, async (req, res) => {
+//   try {
+//     const { username, email, phoneNumber } = req.body;
+//     const userId = req.user._id;
+
+//     // Check if email is already taken by another user
+//     if (email) {
+//       const existingUser = await User.findOne({
+//         email: email.toLowerCase().trim(),
+//         _id: { $ne: userId }
+//       });
+//       if (existingUser) {
+//         // ✅ SECURITY: Generic error message
+//         return res.status(400).json({
+//           success: false,
+//           error: 'Update failed. Please check your details.'
+//         });
+//       }
+//     }
+
+//     // Check if username is already taken by another user
+//     if (username) {
+//       const existingUser = await User.findOne({
+//         username: username.trim(),
+//         _id: { $ne: userId }
+//       });
+//       if (existingUser) {
+//         return res.status(400).json({
+//           success: false,
+//           error: 'Update failed. Please check your details.'
+//         });
+//       }
+//     }
+
+//     // Update user
+//     const updatedUser = await User.findByIdAndUpdate(
+//       userId,
+//       {
+//         username: username?.trim(),
+//         email: email?.toLowerCase().trim(),
+//         phoneNumber: phoneNumber?.trim(),
+//       },
+//       { new: true, runValidators: true }
+//     );
+
+//     if (!updatedUser) {
+//       return res.status(404).json({
+//         success: false,
+//         error: 'User not found'
+//       });
+//     }
+
+//     // Remove sensitive data
+//     const userData = updatedUser.toObject();
+//     delete userData.hash;
+//     delete userData.salt;
+//     delete userData.otpCode;
+//     delete userData.otpExpires;
+
+//     res.json({
+//       success: true,
+//       message: 'Profile updated successfully',
+//       user: userData
+//     });
+
+//   } catch (error) {
+//     console.error('Error updating profile:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to update profile'
+//     });
+//   }
+// });
+// routes/users.js
+// ... existing code ...
+
+// ====== UPDATE PROFILE ROUTE ======
 router.patch('/api/update-profile', isLoggedIn, async (req, res) => {
   try {
-    const { username, email, phoneNumber } = req.body;
+    const { username, email, phoneNumber, location } = req.body;
     const userId = req.user._id;
 
     // Check if email is already taken by another user
@@ -253,10 +327,9 @@ router.patch('/api/update-profile', isLoggedIn, async (req, res) => {
         _id: { $ne: userId }
       });
       if (existingUser) {
-        // ✅ SECURITY: Generic error message
         return res.status(400).json({
           success: false,
-          error: 'Update failed. Please check your details.'
+          error: 'Email already in use by another account.'
         });
       }
     }
@@ -270,7 +343,7 @@ router.patch('/api/update-profile', isLoggedIn, async (req, res) => {
       if (existingUser) {
         return res.status(400).json({
           success: false,
-          error: 'Update failed. Please check your details.'
+          error: 'Username already taken.'
         });
       }
     }
@@ -282,6 +355,7 @@ router.patch('/api/update-profile', isLoggedIn, async (req, res) => {
         username: username?.trim(),
         email: email?.toLowerCase().trim(),
         phoneNumber: phoneNumber?.trim(),
+        location: location?.trim(),
       },
       { new: true, runValidators: true }
     );
@@ -314,6 +388,8 @@ router.patch('/api/update-profile', isLoggedIn, async (req, res) => {
     });
   }
 });
+
+// ... rest of the code ...
 
 // ====== LOGOUT ROUTE ======
 router.get('/logout', (req, res, next) => {

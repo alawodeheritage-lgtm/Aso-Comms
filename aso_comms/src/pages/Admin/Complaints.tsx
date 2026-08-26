@@ -253,7 +253,7 @@ const AdminComplaints: React.FC = () => {
           <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-slate-500">Under Review</span>
-              <span className="material-symbols-outlined text-amber-600 text-2xl">review</span>
+              <span className="material-symbols-outlined text-amber-600 text-2xl"></span>
             </div>
             <p className="text-2xl font-bold text-amber-600 mt-1">{underReviewComplaints}</p>
           </div>

@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const Repair = require('../models/repair');
+const User = require('../models/user'); // ✅ ADD THIS LINE
 const Expense = require('../models/expense');
 const ExpressError = require('../utils/ExpressError');
 const catchAsync = require('../utils/catchAsync');
@@ -47,56 +48,162 @@ router.get('/', isLoggedIn, catchAsync(async (req, res) => {
 // CREATE NEW REPAIR - FIXED
 // ==========================================
 // routes/repairs.js – POST /repairs
-router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
+// router.post('/', isLoggedIn, validateRepair, async (req, res, next) => {
+//     try {
+//         const { images, customerEmail, phoneNumber, customerName } = req.body;
+
+//         // ✅ Find existing user by email or phone
+//         let ownerId = null;
+//         if (customerEmail || phoneNumber) {
+//             const existingUser = await User.findOne({
+//                 $or: [
+//                     { email: customerEmail?.toLowerCase() },
+//                     { phoneNumber: phoneNumber }
+//                 ]
+//             });
+//             if (existingUser) {
+//                 ownerId = existingUser._id;
+//                 console.log(`🔗 Repair linked to existing user: ${existingUser.email}`);
+//             } else {
+//                 console.log('⚠️ No existing user found – owner will be null.');
+//             }
+//         }
+
+//         // Create repair data
+//         const repairData = {
+//             customerName: req.body.customerName,
+//             phoneNumber: req.body.phoneNumber,
+//             customerEmail: req.body.customerEmail,
+//             deviceModel: req.body.deviceModel,
+//             issueDescription: req.body.issueDescription || '',
+//             status: req.body.status || 'Pending',
+//             priority: req.body.priority || 'medium',
+//             assignedTo: req.body.assignedTo || 'Unassigned',
+//             financials: {
+//                 totalEstimate: req.body.financials?.totalEstimate || 0,
+//                 amountPaid: req.body.financials?.amountPaid || 0,
+//             },
+//             owner: ownerId,                     // ✅ Set to customer ID if found, else null
+//             images: images || []
+//         };
+
+//         const newRepair = new Repair(repairData);
+//         await newRepair.save();
+
+//         res.status(201).json({
+//             success: true,
+//             message: `Repair created with ticket ${newRepair.ticketId}`,
+//             repair: newRepair
+//         });
+//     } catch (error) {
+//         console.error('❌ Error creating repair:', error);
+//         res.status(500).json({ success: false, error: error.message });
+//     }
+// });
+router.post('/', isLoggedIn, validateRepair, async (req, res) => {
     try {
+        console.log('📝 ===== REPAIR CREATION STARTED =====');
+        console.log('📝 Request body:', JSON.stringify(req.body, null, 2));
+        console.log('📝 User:', req.user?.username || 'Unknown');
+
         const { images, customerEmail, phoneNumber, customerName } = req.body;
 
         // ✅ Find existing user by email or phone
         let ownerId = null;
         if (customerEmail || phoneNumber) {
+            console.log('🔍 Looking for user with:', { customerEmail, phoneNumber });
+
             const existingUser = await User.findOne({
                 $or: [
                     { email: customerEmail?.toLowerCase() },
                     { phoneNumber: phoneNumber }
                 ]
             });
+
             if (existingUser) {
                 ownerId = existingUser._id;
-                console.log(`🔗 Repair linked to existing user: ${existingUser.email}`);
+                console.log(`✅ Found existing user: ${existingUser.email} (ID: ${ownerId})`);
             } else {
                 console.log('⚠️ No existing user found – owner will be null.');
             }
         }
 
-        // Create repair data
+        // ✅ Validate required fields
+        if (!req.body.customerName) {
+            console.log('❌ Missing customerName');
+            return res.status(400).json({
+                success: false,
+                error: 'Customer name is required'
+            });
+        }
+
+        if (!req.body.phoneNumber) {
+            console.log('❌ Missing phoneNumber');
+            return res.status(400).json({
+                success: false,
+                error: 'Phone number is required'
+            });
+        }
+
+        // ✅ Create repair data with proper defaults
         const repairData = {
-            customerName: req.body.customerName,
-            phoneNumber: req.body.phoneNumber,
-            customerEmail: req.body.customerEmail,
-            deviceModel: req.body.deviceModel,
-            issueDescription: req.body.issueDescription || '',
+            customerName: req.body.customerName.trim(),
+            phoneNumber: req.body.phoneNumber.trim(),
+            customerEmail: req.body.customerEmail?.trim() || '',
+            deviceModel: req.body.deviceModel?.trim() || 'Unknown Device',
+            issueDescription: req.body.issueDescription?.trim() || '',
             status: req.body.status || 'Pending',
             priority: req.body.priority || 'medium',
             assignedTo: req.body.assignedTo || 'Unassigned',
             financials: {
-                totalEstimate: req.body.financials?.totalEstimate || 0,
-                amountPaid: req.body.financials?.amountPaid || 0,
+                totalEstimate: Number(req.body.financials?.totalEstimate) || 0,
+                amountPaid: Number(req.body.financials?.amountPaid) || 0,
             },
-            owner: ownerId,                     // ✅ Set to customer ID if found, else null
+            owner: ownerId,
             images: images || []
         };
 
+        console.log('📊 Creating repair with data:', repairData);
+
+        // ✅ Create and save repair
         const newRepair = new Repair(repairData);
         await newRepair.save();
+
+        console.log('✅ Repair saved successfully!');
+        console.log('🎫 Ticket ID:', newRepair.ticketId);
+        console.log('📝 ===== REPAIR CREATION COMPLETE =====');
 
         res.status(201).json({
             success: true,
             message: `Repair created with ticket ${newRepair.ticketId}`,
             repair: newRepair
         });
+
     } catch (error) {
         console.error('❌ Error creating repair:', error);
-        res.status(500).json({ success: false, error: error.message });
+        console.error('❌ Error stack:', error.stack);
+
+        // ✅ Check for specific MongoDB errors
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                success: false,
+                error: 'Validation error: ' + error.message,
+                details: error.errors
+            });
+        }
+
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                error: 'Duplicate entry. Please check your data.'
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            details: error.stack
+        });
     }
 });
 
@@ -134,11 +241,61 @@ router.get('/:id', isLoggedIn, catchAsync(async (req, res) => {
 // ==========================================
 // routes/repairs.js - Update the PUT route
 
+// router.put('/:id', isLoggedIn, isStaff, validateRepair, async (req, res, next) => {
+//     try {
+//         const { id } = req.params;
+//         const repair = await Repair.findById(id);
+
+//         if (!repair) {
+//             return res.status(404).json({
+//                 success: false,
+//                 error: 'Repair not found'
+//             });
+//         }
+
+//         // ✅ Include images in the update
+//         const updateData = {
+//             customerName: req.body.customerName,
+//             phoneNumber: req.body.phoneNumber,
+//             customerEmail: req.body.customerEmail,
+//             deviceModel: req.body.deviceModel,
+//             issueDescription: req.body.issueDescription || '',
+//             status: req.body.status || repair.status,
+//             priority: req.body.priority || repair.priority,
+//             assignedTo: req.body.assignedTo || repair.assignedTo,
+//             financials: {
+//                 totalEstimate: req.body.financials?.totalEstimate || repair.financials.totalEstimate,
+//                 amountPaid: req.body.financials?.amountPaid || repair.financials.amountPaid,
+//             },
+//             images: req.body.images || repair.images  // ✅ ADD THIS LINE
+//         };
+
+//         Object.assign(repair, updateData);
+//         await repair.save();
+
+//         // ✅ Populate the repair with the updated images
+//         await repair.populate('owner', 'username email');
+
+//         res.json({
+//             success: true,
+//             message: 'Repair updated successfully',
+//             repair: repair
+//         });
+
+//     } catch (error) {
+//         console.error('❌ Error updating repair:', error);
+//         next(error);
+//     }
+// });
+
+// UPDATE REPAIR - FIXED
 router.put('/:id', isLoggedIn, isStaff, validateRepair, async (req, res, next) => {
     try {
         const { id } = req.params;
-        const repair = await Repair.findById(id);
+        console.log('📝 Updating repair:', id);
+        console.log('📝 Update data:', JSON.stringify(req.body, null, 2));
 
+        const repair = await Repair.findById(id);
         if (!repair) {
             return res.status(404).json({
                 success: false,
@@ -146,28 +303,29 @@ router.put('/:id', isLoggedIn, isStaff, validateRepair, async (req, res, next) =
             });
         }
 
-        // ✅ Include images in the update
+        // ✅ Handle images properly
         const updateData = {
-            customerName: req.body.customerName,
-            phoneNumber: req.body.phoneNumber,
-            customerEmail: req.body.customerEmail,
-            deviceModel: req.body.deviceModel,
-            issueDescription: req.body.issueDescription || '',
+            customerName: req.body.customerName || repair.customerName,
+            phoneNumber: req.body.phoneNumber || repair.phoneNumber,
+            customerEmail: req.body.customerEmail || repair.customerEmail,
+            deviceModel: req.body.deviceModel || repair.deviceModel,
+            issueDescription: req.body.issueDescription || repair.issueDescription,
             status: req.body.status || repair.status,
             priority: req.body.priority || repair.priority,
             assignedTo: req.body.assignedTo || repair.assignedTo,
             financials: {
-                totalEstimate: req.body.financials?.totalEstimate || repair.financials.totalEstimate,
-                amountPaid: req.body.financials?.amountPaid || repair.financials.amountPaid,
+                totalEstimate: req.body.financials?.totalEstimate ?? repair.financials?.totalEstimate ?? 0,
+                amountPaid: req.body.financials?.amountPaid ?? repair.financials?.amountPaid ?? 0,
             },
-            images: req.body.images || repair.images  // ✅ ADD THIS LINE
+            // ✅ IMPORTANT: Handle images properly
+            images: req.body.images !== undefined ? req.body.images : repair.images
         };
 
         Object.assign(repair, updateData);
         await repair.save();
-
-        // ✅ Populate the repair with the updated images
         await repair.populate('owner', 'username email');
+
+        console.log('✅ Repair updated successfully:', repair.ticketId);
 
         res.json({
             success: true,
@@ -180,7 +338,6 @@ router.put('/:id', isLoggedIn, isStaff, validateRepair, async (req, res, next) =
         next(error);
     }
 });
-
 // ==========================================
 // UPDATE STATUS ONLY
 // ==========================================

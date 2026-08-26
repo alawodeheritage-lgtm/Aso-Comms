@@ -63,103 +63,131 @@ const Financials: React.FC = () => {
   const fetchFinancialData = async () => {
     try {
       setLoading(true);
-      // console.log('🔄 Fetching financial data...');
 
-      const [transactionsRes, expensesRes, repairsRes] = await Promise.all([
+      // ✅ Use Promise.allSettled to prevent one failure from breaking everything
+      const results = await Promise.allSettled([
         transactionsAPI.getAll(),
         expensesAPI.getAll(),
         repairsAPI.getAll()
       ]);
 
-      // console.log('📊 Transactions:', transactionsRes);
-      // console.log('📊 Expenses:', expensesRes);
-      // console.log('📊 Repairs:', repairsRes);
-
+      // ✅ Safely extract data with fallbacks
       let transactionData: Transaction[] = [];
+      let repairsData: any[] = [];
 
-      if (transactionsRes.transactions) {
-        transactionData = transactionsRes.transactions.map((t: any) => ({
-          id: t._id || t.id,
-          description: t.description || 'Transaction',
-          amount: formatCurrencyWithSign(t.amount, t.type || 'expense'),
-          date: new Date(t.date || t.createdAt).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          }),
-          type: t.type || 'expense',
-          category: t.category || 'Other',
-          _id: t._id,
-          repairId: t.repairId,
-          notes: t.notes || '',
-          loggedBy: t.loggedBy,
-          createdAt: t.createdAt,
-          updatedAt: t.updatedAt
-        }));
-      }
-
-      if (expensesRes.expenses) {
-        const expenseTransactions = expensesRes.expenses.map((e: any) => ({
-          id: e._id || e.id,
-          description: e.description || 'Expense',
-          amount: formatCurrencyWithSign(e.amount, 'expense'),
-          date: new Date(e.dateLogged || e.createdAt).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          }),
-          type: 'expense' as const,
-          category: e.category || 'Other',
-          _id: e._id,
-          notes: e.notes || '',
-          loggedBy: e.loggedBy,
-          createdAt: e.createdAt,
-          updatedAt: e.updatedAt
-        }));
-        transactionData = [...transactionData, ...expenseTransactions];
-      }
-
-      if (repairsRes.repairs) {
-        const repairTransactions = repairsRes.repairs
-          .filter((r: any) => r.financials?.amountPaid > 0)
-          .map((r: any) => ({
-            id: r._id || r.id,
-            description: `${r.deviceModel || 'Device'} Repair - ${r.customerName || 'Customer'}`,
-            amount: formatCurrencyWithSign(r.financials?.amountPaid || 0, 'income'),
-            date: new Date(r.dateLogged || r.createdAt).toLocaleDateString('en-US', {
+      // Handle Transactions
+      if (results[0].status === 'fulfilled') {
+        const transactionsRes = results[0].value;
+        if (transactionsRes?.transactions) {
+          transactionData = transactionsRes.transactions.map((t: any) => ({
+            id: t._id || t.id,
+            description: t.description || 'Transaction',
+            amount: formatCurrencyWithSign(t.amount, t.type || 'expense'),
+            date: new Date(t.date || t.createdAt).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
               year: 'numeric'
             }),
-            type: 'income' as const,
-            category: 'Repairs',
-            _id: r._id,
-            repairId: r._id,
-            notes: r.issueDescription || '',
-            loggedBy: r.owner,
-            createdAt: r.createdAt,
-            updatedAt: r.updatedAt
+            type: t.type || 'expense',
+            category: t.category || 'Other',
+            _id: t._id,
+            repairId: t.repairId,
+            notes: t.notes || '',
+            loggedBy: t.loggedBy,
+            createdAt: t.createdAt,
+            updatedAt: t.updatedAt
           }));
-        transactionData = [...transactionData, ...repairTransactions];
-
-        // Store repairs for additional stats
-        setRepairs(repairsRes.repairs);
+        }
+      } else {
+        console.warn('⚠️ Transactions API failed:', results[0].reason);
       }
 
+      // Handle Expenses
+      if (results[1].status === 'fulfilled') {
+        const expensesRes = results[1].value;
+        if (expensesRes?.expenses) {
+          const expenseTransactions = expensesRes.expenses.map((e: any) => ({
+            id: e._id || e.id,
+            description: e.description || 'Expense',
+            amount: formatCurrencyWithSign(e.amount, 'expense'),
+            date: new Date(e.dateLogged || e.createdAt).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            }),
+            type: 'expense' as const,
+            category: e.category || 'Other',
+            _id: e._id,
+            notes: e.notes || '',
+            loggedBy: e.loggedBy,
+            createdAt: e.createdAt,
+            updatedAt: e.updatedAt
+          }));
+          transactionData = [...transactionData, ...expenseTransactions];
+        }
+      } else {
+        console.warn('⚠️ Expenses API failed:', results[1].reason);
+      }
+
+      // Handle Repairs
+      if (results[2].status === 'fulfilled') {
+        const repairsRes = results[2].value;
+        if (repairsRes?.repairs) {
+          repairsData = repairsRes.repairs;
+
+          const repairTransactions = repairsRes.repairs
+            .filter((r: any) => r.financials?.amountPaid > 0)
+            .map((r: any) => ({
+              id: r._id || r.id,
+              description: `${r.deviceModel || 'Device'} Repair - ${r.customerName || 'Customer'}`,
+              amount: formatCurrencyWithSign(r.financials?.amountPaid || 0, 'income'),
+              date: new Date(r.dateLogged || r.createdAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              }),
+              type: 'income' as const,
+              category: 'Repairs',
+              _id: r._id,
+              repairId: r._id,
+              notes: r.issueDescription || '',
+              loggedBy: r.owner,
+              createdAt: r.createdAt,
+              updatedAt: r.updatedAt
+            }));
+          transactionData = [...transactionData, ...repairTransactions];
+        }
+      } else {
+        console.warn('⚠️ Repairs API failed:', results[2].reason);
+      }
+
+      // Sort by date
       transactionData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-      // console.log(`📊 Total transactions: ${transactionData.length}`);
       setTransactions(transactionData);
+      setRepairs(repairsData);
+
+      // ✅ Show success toast if data loaded
+      if (transactionData.length > 0) {
+        setToast({
+          message: `Loaded ${transactionData.length} transactions successfully!`,
+          type: 'success'
+        });
+      }
+
     } catch (err: any) {
-      // console.error('❌ Failed to fetch financial data:', err);
+      console.error('❌ Financial data error:', err);
       setToast({
-        message: err.response?.data?.error || 'Failed to load financial data. Please refresh.',
+        message: err?.message || 'Failed to load financial data. Please refresh.',
         type: 'error'
       });
+      // Set empty data to prevent crash
+      setTransactions([]);
+      setRepairs([]);
     } finally {
       setLoading(false);
     }
-  };
+  }; 
 
   useEffect(() => {
     fetchFinancialData();

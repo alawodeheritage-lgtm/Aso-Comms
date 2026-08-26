@@ -179,25 +179,60 @@ const CustomerProfile: React.FC = () => {
     await saveProfileChanges(formData);
   };
 
+  // const saveProfileChanges = async (data: any) => {
+  //   try {
+  //     const response = await api.patch('/api/update-profile', {
+  //       username: data.name,
+  //       email: data.email,
+  //       phoneNumber: data.phone,
+  //       location: data.location,
+  //     });
+
+  //     // console.log('✅ Profile updated:', response.data);
+
+  //     if (updateUser) {
+  //       updateUser({
+  //         ...user,
+  //         username: data.name,
+  //         email: data.email,
+  //         phoneNumber: data.phone,
+  //       });
+  //     }
+
+  //     setProfile((prev) => ({
+  //       ...prev,
+  //       name: data.name,
+  //       email: data.email,
+  //       phone: data.phone,
+  //       location: data.location,
+  //     }));
+  //     setIsEditing(false);
+  //     setShowConfirmDialog(false);
+  //     setToast({
+  //       message: 'Profile updated successfully! Your records have been preserved.',
+  //       type: 'success'
+  //     });
+  //     await fetchCustomerProfile();
+  //   } catch (err: any) {
+  //     // console.error('❌ Failed to update profile:', err);
+  //     setToast({
+  //       message: err.response?.data?.error || 'Failed to update profile.',
+  //       type: 'error'
+  //     });
+  //   }
+  // };
+  // src/pages/Customer/Profile.tsx
+  // ... existing code ...
+
   const saveProfileChanges = async (data: any) => {
     try {
-      const response = await api.patch('/api/update-profile', {
+      // ✅ Use updateUser from context
+      await updateUser({
         username: data.name,
         email: data.email,
         phoneNumber: data.phone,
         location: data.location,
       });
-
-      // console.log('✅ Profile updated:', response.data);
-
-      if (updateUser) {
-        updateUser({
-          ...user,
-          username: data.name,
-          email: data.email,
-          phoneNumber: data.phone,
-        });
-      }
 
       setProfile((prev) => ({
         ...prev,
@@ -214,13 +249,15 @@ const CustomerProfile: React.FC = () => {
       });
       await fetchCustomerProfile();
     } catch (err: any) {
-      // console.error('❌ Failed to update profile:', err);
+      console.error('❌ Failed to update profile:', err);
       setToast({
         message: err.response?.data?.error || 'Failed to update profile.',
         type: 'error'
       });
     }
   };
+
+  // ... rest of the code ...
 
   const handleCancel = () => {
     setFormData({

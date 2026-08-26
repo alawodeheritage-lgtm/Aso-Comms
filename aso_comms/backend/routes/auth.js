@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
-const sendOTPEmail = require('../utils/sendEmail');
+const { sendOTPEmail, sendWelcomeEmail } = require('../utils/sendEmail');
 
 // ==========================================
 // 1. Render OTP Verification page (not needed for API)
@@ -45,11 +45,23 @@ router.post('/verify-otp', async (req, res) => {
       user.status = 'Active';
       await user.save();
 
+      // ✅ SEND WELCOME EMAIL WITH TICKET ID
+      try {
+        await sendWelcomeEmail({
+          email: user.email,
+          username: user.username,
+          ticketId: user.ticketId || `USER-${Date.now().toString().slice(-6)}`
+        });
+      } catch (emailError) {
+        console.error('❌ Welcome email failed:', emailError.message);
+        // Don't block the user - just log the error
+      }
+
       req.logIn(user, (err) => {
         if (err) {
           return res.status(500).json({ success: false, error: 'Verification successful but login failed.' });
         }
-        return res.json({ success: true, message: 'Account verified successfully!', redirect: '/dashboard' });
+        return res.json({ success: true, message: 'Account verified successfully! Welcome email sent.', redirect: '/dashboard' });
       });
 
     } else if (purpose === 'reset') {
@@ -63,6 +75,7 @@ router.post('/verify-otp', async (req, res) => {
     return res.status(500).json({ success: false, error: 'An error occurred during verification.' });
   }
 });
+
 
 // ==========================================
 // 3. RESEND OTP – FIXED

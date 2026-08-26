@@ -22,9 +22,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [images, setImages] = useState<any[]>(existingImages);
+  const [images, setImages] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ✅ FIX: Only update images when existingImages changes AND it's different
   useEffect(() => {
     setImages(existingImages);
   }, [existingImages]);
@@ -61,9 +62,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
       if (response.data.success) {
         const newImages = response.data.files;
-        setImages(prev => {
-          const updated = [...prev, ...newImages];
-          onUploadComplete(updated);
+        // ✅ FIX: Use functional update to avoid stale closures
+        setImages(prevImages => {
+          const updated = [...prevImages, ...newImages];
+          // ✅ Call onUploadComplete AFTER state is updated
+          setTimeout(() => onUploadComplete(updated), 0);
           return updated;
         });
         setUploadProgress(100);
@@ -81,25 +84,30 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
   const handleRemove = async (index: number) => {
     const imageToRemove = images[index];
-    if (imageToRemove.publicId) {
+    if (imageToRemove?.publicId) {
       try {
         await api.delete(`/uploads/${imageToRemove.publicId}`);
       } catch (err) {
         console.error('Failed to delete image:', err);
       }
     }
-    const updatedImages = images.filter((_, i) => i !== index);
-    setImages(updatedImages);
-    onUploadComplete(updatedImages);
-    if (onRemove && imageToRemove.publicId) {
-      onRemove(imageToRemove.publicId);
-    }
+    setImages(prevImages => {
+      const updated = prevImages.filter((_, i) => i !== index);
+      // ✅ Call onUploadComplete AFTER state is updated
+      setTimeout(() => onUploadComplete(updated), 0);
+      if (onRemove && imageToRemove?.publicId) {
+        onRemove(imageToRemove.publicId);
+      }
+      return updated;
+    });
   };
 
   return (
     <div className="space-y-3">
       <div
-        className={`border-2 border-dashed rounded-2xl p-4 sm:p-6 text-center transition-all ${uploading ? 'border-[#1A365D] bg-[#1A365D]/5' : 'border-slate-300 hover:border-[#1A365D]/40 hover:bg-[#1A365D]/5'
+        className={`border-2 border-dashed rounded-2xl p-4 sm:p-6 text-center transition-all ${uploading
+            ? 'border-[#1A365D] bg-[#1A365D]/5'
+            : 'border-slate-300 hover:border-[#1A365D]/40 hover:bg-[#1A365D]/5'
           }`}
       >
         <input
@@ -155,6 +163,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                 src={image.url}
                 alt={`Upload ${index + 1}`}
                 className="w-full h-24 sm:h-28 object-cover rounded-xl border border-slate-200"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
               />
               <button
                 onClick={() => handleRemove(index)}

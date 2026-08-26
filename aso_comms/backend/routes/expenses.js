@@ -1,119 +1,74 @@
-// backend/routes/expenses.js
+// routes/expenses.js
 const express = require('express');
 const router = express.Router();
 const Expense = require('../models/expense');
-const catchAsync = require('../utils/catchAsync');
-const ExpressError = require('../utils/ExpressError');
 const { isLoggedIn, isStaff } = require('../middleware');
 
-// ==========================================
-// GET ALL EXPENSES - FIXED
-// ==========================================
-router.get('/', isLoggedIn, isStaff, async (req, res) => {
+// GET ALL EXPENSES
+router.get('/', isLoggedIn, async (req, res) => {
     try {
-        // console.log('📋 FETCHING EXPENSES');
-        // console.log('👤 User:', req.user?.username || 'Unknown');
-
         const expenses = await Expense.find({})
             .populate('loggedBy', 'username email')
-            .sort({ dateLogged: -1, createdAt: -1 });
+            .sort({ dateLogged: -1 });
 
-        // console.log(`📊 Found ${expenses.length} expenses`);
-
-        res.json({
+        // ✅ FIX: Use status() then json()
+        res.status(200).json({
             success: true,
             count: expenses.length,
             expenses: expenses
         });
     } catch (error) {
-        // console.error('❌ Error fetching expenses:', error);
+        console.error('❌ Error fetching expenses:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to fetch expenses'
+            error: error.message
         });
     }
 });
 
-// ==========================================
-// CREATE NEW EXPENSE - FIXED
-// ==========================================
+// CREATE EXPENSE
 router.post('/', isLoggedIn, isStaff, async (req, res) => {
     try {
-        // console.log('========================================');
-        // console.log('📝 CREATE EXPENSE REQUEST');
-        // console.log('👤 User:', req.user?.username || 'Unknown');
-        // console.log('📦 Request Body:', JSON.stringify(req.body, null, 2));
-        // console.log('========================================');
-
         const { description, amount, category, notes } = req.body;
 
-        // Validate required fields
-        if (!description || !amount || !category) {
+        if (!description || !amount) {
             return res.status(400).json({
                 success: false,
-                error: 'Description, amount, and category are required'
+                error: 'Description and amount are required'
             });
         }
 
         const newExpense = new Expense({
-            description: description.trim(),
-            amount: Number(amount),
-            category: category,
+            description,
+            amount,
+            category: category || 'Other',
             notes: notes || '',
             loggedBy: req.user._id,
             status: 'pending'
         });
 
-        // console.log('💾 Saving expense to database...');
         await newExpense.save();
-
-        // Populate loggedBy for response
         await newExpense.populate('loggedBy', 'username email');
-
-        // console.log('✅ Expense saved successfully!');
-        // console.log('🆔 Expense ID:', newExpense._id);
-        // console.log('========================================');
 
         res.status(201).json({
             success: true,
-            message: 'Expense logged successfully',
+            message: 'Expense created successfully',
             expense: newExpense
         });
-
     } catch (error) {
         console.error('❌ Error creating expense:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to create expense'
+            error: error.message
         });
     }
 });
 
-// ==========================================
-// UPDATE EXPENSE STATUS (Approve/Reject) - FIXED
-// ==========================================
+// UPDATE EXPENSE STATUS
 router.patch('/:id/status', isLoggedIn, isStaff, async (req, res) => {
     try {
-        const { id } = req.params;
         const { status } = req.body;
-
-        // console.log('📝 UPDATE EXPENSE STATUS');
-        // console.log('🆔 Expense ID:', id);
-        // console.log('📊 New Status:', status);
-        // console.log('👤 User:', req.user?.username || 'Unknown');
-
-        if (!['pending', 'approved', 'rejected'].includes(status)) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid status. Must be pending, approved, or rejected'
-            });
-        }
-
-        const expense = await Expense.findByIdAndUpdate(
-            id,
-            { status: status },
-            { new: true, runValidators: true }
-        ).populate('loggedBy', 'username email');
+        const expense = await Expense.findById(req.params.id);
 
         if (!expense) {
             return res.status(404).json({
@@ -122,34 +77,27 @@ router.patch('/:id/status', isLoggedIn, isStaff, async (req, res) => {
             });
         }
 
-        // console.log('✅ Expense status updated to:', status);
+        expense.status = status;
+        await expense.save();
 
-        res.json({
+        res.status(200).json({
             success: true,
             message: `Expense ${status}`,
             expense: expense
         });
-
     } catch (error) {
-        console.error('❌ Error updating expense status:', error);
+        console.error('❌ Error updating expense:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to update expense status'
+            error: error.message
         });
     }
 });
 
-// ==========================================
-// DELETE EXPENSE - FIXED
-// ==========================================
+// DELETE EXPENSE
 router.delete('/:id', isLoggedIn, isStaff, async (req, res) => {
     try {
-        const { id } = req.params;
-        // console.log('🗑️ DELETE EXPENSE');
-        // console.log('🆔 Expense ID:', id);
-        // console.log('👤 User:', req.user?.username || 'Unknown');
-
-        const expense = await Expense.findByIdAndDelete(id);
+        const expense = await Expense.findByIdAndDelete(req.params.id);
 
         if (!expense) {
             return res.status(404).json({
@@ -158,30 +106,17 @@ router.delete('/:id', isLoggedIn, isStaff, async (req, res) => {
             });
         }
 
-        // console.log('✅ Expense deleted successfully');
-
-        res.json({
+        res.status(200).json({
             success: true,
             message: 'Expense deleted successfully'
         });
-
     } catch (error) {
         console.error('❌ Error deleting expense:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to delete expense'
+            error: error.message
         });
     }
-});
-
-// ==========================================
-// TEST ROUTE - To verify expenses route is working
-// ==========================================
-router.get('/test', (req, res) => {
-    res.json({
-        message: 'Expenses route is working! 🎉',
-        timestamp: new Date().toISOString()
-    });
 });
 
 module.exports = router;
