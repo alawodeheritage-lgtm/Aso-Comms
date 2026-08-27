@@ -231,7 +231,6 @@ const CustomerProfile: React.FC = () => {
         username: data.name,
         email: data.email,
         phoneNumber: data.phone,
-        location: data.location,
       });
 
       setProfile((prev) => ({
