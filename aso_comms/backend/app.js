@@ -10,13 +10,14 @@ const path = require('path');
 const methodOverride = require('method-override');
 const ExpressError = require('./utils/ExpressError');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const flash = require('connect-flash');
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
 const User = require('./models/user');
 
 // ==============================================
-// IMPORT ALL ROUTES - MAKE SURE THESE FILES EXIST
+// IMPORT ALL ROUTES
 // ==============================================
 const dashboardRoutes = require('./routes/dashboard');
 const userRoutes = require('./routes/users');
@@ -42,10 +43,24 @@ mongoose.connect(dbUrl, {
 const app = express();
 
 // ==============================================
-// 👇 CORS CONFIGURATION
+// ✅ MONGODB SESSION STORE - FOR v4.6.0
 // ==============================================
+// ✅ This syntax works with connect-mongo@4.6.0
+const store = MongoStore.create({
+    mongoUrl: dbUrl,
+    touchAfter: 24 * 3600,
+    // crypto: {
+    //     secret: process.env.SESSION_SECRET || 'fallback-secret-key'
+    // }
+});
 
-// CORS options
+store.on('error', function (error) {
+    console.log('❌ Session Store Error:', error);
+});
+
+// ==============================================
+// ✅ CORS CONFIGURATION
+// ==============================================
 const corsOptions = {
     origin: [
         'http://localhost:5173',
@@ -58,36 +73,23 @@ const corsOptions = {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
     exposedHeaders: ['Set-Cookie', 'Cookie'],
-}
+};
 
-// Apply CORS middleware
 app.use(cors(corsOptions));
 
-// Handle OPTIONS preflight requests
-app.use((req, res, next) => {
-    if (req.method === 'OPTIONS') {
-        res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-        res.header('Access-Control-Allow-Credentials', 'true');
-        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-        return res.sendStatus(204);
-    }
-    next();
-});
-
 // ==============================================
-// SESSION CONFIGURATION
+// ✅ SESSION CONFIGURATION
 // ==============================================
 const sessionConfig = {
-    secret: process.env.SESSION_SECRET || 'thisshouldbeabettersecretinproduction!',
+    store: store,
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
-        maxAge: 1000 * 60 * 60 * 24 * 7,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     }
 };
 
@@ -119,14 +121,15 @@ app.use((req, res, next) => {
 });
 
 // ==============================================
-// TEST ROUTE - Verify CORS
+// TEST ROUTE - Verify CORS & Session
 // ==============================================
 app.get('/api/test', (req, res) => {
     res.json({
         message: 'CORS is working! 🎉',
         timestamp: new Date().toISOString(),
         origin: req.headers.origin || 'No origin',
-        authenticated: req.isAuthenticated()
+        authenticated: req.isAuthenticated(),
+        sessionId: req.sessionID
     });
 });
 
@@ -190,7 +193,7 @@ app.get('/', (req, res) => {
 // ==============================================
 
 // Catch-all for 404
-app.all('/{*path}', (req, res, next) => {
+app.all('/*', (req, res, next) => {
     next(new ExpressError('Page Not Found / Resource Missing', 404));
 });
 
@@ -203,17 +206,14 @@ app.use((err, req, res, next) => {
         message = 'Duplicate record found in the system.';
     }
 
-    console.error('Error:', err);
+    console.error('❌ Error:', err);
 
-    if (req.headers.accept && req.headers.accept.includes('application/json')) {
-        return res.status(statusCode).json({
-            error: message,
-            statusCode,
-            timestamp: new Date().toISOString()
-        });
-    }
-
-    res.status(statusCode).json({ error: message, statusCode });
+    res.status(statusCode).json({
+        success: false,
+        error: message,
+        statusCode,
+        timestamp: new Date().toISOString()
+    });
 });
 
 // ==============================================
