@@ -250,11 +250,12 @@ const CustomerComplaints: React.FC = () => {
         subject: formData.subject.trim(),
         category: formData.category,
         description: formData.description.trim(),
-        images: complaintImages.map(img => ({
-          url: img.url,
-          publicId: img.publicId,
-          originalName: img.originalName
-        }))
+        // images: complaintImages.map(img => ({
+        //   url: img.url,
+        //   publicId: img.publicId,
+        //   originalName: img.originalName
+        // }))
+        images: complaintImages.map(img => img.url)
       };
       // console.log('📤 Submitting complaint:', complaintData);
       const response = await complaintsAPI.create(complaintData);
