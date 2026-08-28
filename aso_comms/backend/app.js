@@ -45,13 +45,9 @@ const app = express();
 // ==============================================
 // ✅ MONGODB SESSION STORE - FOR v4.6.0
 // ==============================================
-// ✅ This syntax works with connect-mongo@4.6.0
 const store = MongoStore.create({
     mongoUrl: dbUrl,
-    touchAfter: 24 * 3600,
-    // crypto: {
-    //     secret: process.env.SESSION_SECRET || 'fallback-secret-key'
-    // }
+    touchAfter: 24 * 3600
 });
 
 store.on('error', function (error) {
@@ -59,14 +55,7 @@ store.on('error', function (error) {
 });
 
 // ==============================================
-// ✅ CORS CONFIGURATION
-// ==============================================
-// ==============================================
-// ✅ CORS CONFIGURATION - FIXED
-// ==============================================
-// backend/app.js
-// ==============================================
-// ✅ CORS CONFIGURATION - EXPLICIT
+// ✅ CORS CONFIGURATION - SINGLE INSTANCE
 // ==============================================
 const corsOptions = {
     origin: function (origin, callback) {
@@ -84,21 +73,17 @@ const corsOptions = {
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true,  // ✅ MUST BE TRUE
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
     exposedHeaders: ['Set-Cookie', 'Cookie'],
 };
 
+// ✅ ONLY ONCE
 app.use(cors(corsOptions));
-app.use(cors(corsOptions));
 
-
-
-
-
-
-// ✅ SESSION CONFIGURATION - FORCED FOR PRODUCTION
+// ==============================================
+// ✅ SESSION CONFIGURATION - SINGLE INSTANCE
 // ==============================================
 const sessionConfig = {
     store: store,
@@ -107,14 +92,13 @@ const sessionConfig = {
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: true,  // ✅ FORCE true for Render (HTTPS)
-        sameSite: 'none',  // ✅ FORCE 'none' for cross-origin
+        secure: true,
+        sameSite: 'none',
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     }
 };
 
-app.use(session(sessionConfig));
-
+// ✅ ONLY ONCE
 app.use(session(sessionConfig));
 app.use(flash());
 
@@ -143,7 +127,17 @@ app.use((req, res, next) => {
 });
 
 // ==============================================
-// TEST ROUTE - Verify CORS & Session
+// ✅ REQUEST LOGGING MIDDLEWARE - FOR DEBUGGING
+// ==============================================
+app.use((req, res, next) => {
+    console.log(`📨 ${req.method} ${req.url}`);
+    console.log(`🍪 Cookies:`, req.headers.cookie || 'None');
+    console.log(`🔑 Authenticated: ${req.isAuthenticated()}`);
+    next();
+});
+
+// ==============================================
+// ✅ TEST ROUTE - Verify CORS & Session
 // ==============================================
 app.get('/api/test', (req, res) => {
     res.json({
@@ -180,21 +174,29 @@ app.get('/api/current-user', (req, res) => {
 });
 
 // ==============================================
-// 👇 MOUNT ALL ROUTES
+// 👇 MOUNT ALL ROUTES - CORRECT ORDER
 // ==============================================
+
+// 1️⃣ API ROUTES FIRST
 app.use('/uploads', uploadRoutes);
-app.use('/dashboard', dashboardRoutes);
-app.use('/', userRoutes);
 app.use('/repairs', repairRoutes);
 app.use('/expenses', expenseRoutes);
-app.use('/track', trackRoutes);
-app.use('/transactions', transactionRoutes);
 app.use('/complaints', complaintRoutes);
+app.use('/transactions', transactionRoutes);
+app.use('/dashboard', dashboardRoutes);
+app.use('/track', trackRoutes);
+
+// 2️⃣ AUTH ROUTES
 app.use('/', authRoutes);
+
+// 3️⃣ USER ROUTES
+app.use('/', userRoutes);
+
+// 4️⃣ ADMIN ROUTES
 app.use('/', adminRoutes);
 
 // ==============================================
-// LANDING
+// LANDING - MUST BE AFTER ALL ROUTES
 // ==============================================
 app.get('/', (req, res) => {
     res.json({
@@ -211,7 +213,7 @@ app.get('/', (req, res) => {
 });
 
 // ==============================================
-// 👇 ERROR HANDLING
+// 👇 ERROR HANDLING - MUST BE LAST
 // ==============================================
 
 // Catch-all for 404
