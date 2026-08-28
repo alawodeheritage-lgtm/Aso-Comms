@@ -29,7 +29,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false, userType = null }) 
   const isAdmin = userRole === 'manager' || userRole === 'ceo';
   const isCustomer = userRole === 'customer';
   const isLoggedInUser = !!user || isLoggedIn;
-  const showHamburger = !isLoggedInUser;
+  const showHamburger = !hideNav && !isLoggedInUser;
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/80">

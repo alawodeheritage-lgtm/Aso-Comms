@@ -60,17 +60,19 @@ store.on('error', function (error) {
 // ==============================================
 // ✅ CORS CONFIGURATION
 // ==============================================
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://aso-comms-six.vercel.app',
+    'https://asocomms.vercel.app',
+    process.env.FRONTEND_URL,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+].filter(Boolean);
+
 const corsOptions = {
     origin: function (origin, callback) {
-        const allowedOrigins = [
-            'http://localhost:5173',
-            'http://localhost:5174',
-            'https://aso-comms-six.vercel.app',
-            'https://asocomms.vercel.app',
-            'https://asocomms-backend.onrender.com'
-        ];
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1) {
+        if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
             console.log('❌ CORS blocked origin:', origin);
@@ -88,15 +90,17 @@ app.use(cors(corsOptions));
 // ==============================================
 // ✅ SESSION CONFIGURATION
 // ==============================================
+const isProduction = process.env.NODE_ENV === 'production';
 const sessionConfig = {
     store: store,
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
         httpOnly: true,
-        secure: false,  // ✅ Set to true if using HTTPS
-        sameSite: 'lax',
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     }
 };
