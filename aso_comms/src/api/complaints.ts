@@ -2,17 +2,14 @@
 import { api } from './axios';
 
 export interface ComplaintData {
-  ticketId: string;
-  customerName: string;
-  customerPhone: string;
   subject: string;
-  category: string;
   description: string;
-}
-
-export interface ComplaintStatusUpdate {
-  status: 'Open' | 'Under Review' | 'Escalated' | 'Resolved';
-  resolutionNotes?: string;
+  category: string;
+  severity?: 'low' | 'medium' | 'high';
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  images?: string[];
 }
 
 export const complaintsAPI = {
@@ -34,9 +31,21 @@ export const complaintsAPI = {
     return response.data;
   },
 
-  // Update complaint status with resolution notes
-  updateStatus: async (id: string, data: ComplaintStatusUpdate) => {
+  // Update complaint
+  update: async (id: string, data: Partial<ComplaintData>) => {
+    const response = await api.put(`/complaints/${id}`, data);
+    return response.data;
+  },
+
+  // Update status
+  updateStatus: async (id: string, data: { status: string; resolutionNotes?: string }) => {
     const response = await api.patch(`/complaints/${id}/status`, data);
+    return response.data;
+  },
+
+  // Delete complaint
+  delete: async (id: string) => {
+    const response = await api.delete(`/complaints/${id}`);
     return response.data;
   },
 };

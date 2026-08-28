@@ -1,4 +1,4 @@
-// src/api/expenses.ts - Make sure this is correct
+// src/api/expenses.ts
 import { api } from './axios';
 
 export interface ExpenseData {
@@ -6,12 +6,19 @@ export interface ExpenseData {
   amount: number;
   category: string;
   notes?: string;
+  status?: 'pending' | 'approved' | 'rejected';
 }
 
 export const expensesAPI = {
   // Get all expenses
-  getAll: async () => {
-    const response = await api.get('/expenses');
+  getAll: async (params?: { status?: string }) => {
+    const response = await api.get('/expenses', { params });
+    return response.data;
+  },
+
+  // Get single expense
+  getOne: async (id: string) => {
+    const response = await api.get(`/expenses/${id}`);
     return response.data;
   },
 
@@ -21,8 +28,14 @@ export const expensesAPI = {
     return response.data;
   },
 
-  // Update expense status (approve/reject)
-  updateStatus: async (id: string, status: 'approved' | 'rejected') => {
+  // Update expense
+  update: async (id: string, data: Partial<ExpenseData>) => {
+    const response = await api.put(`/expenses/${id}`, data);
+    return response.data;
+  },
+
+  // Update status
+  updateStatus: async (id: string, status: string) => {
     const response = await api.patch(`/expenses/${id}/status`, { status });
     return response.data;
   },

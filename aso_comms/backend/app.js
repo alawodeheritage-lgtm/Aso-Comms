@@ -42,8 +42,11 @@ mongoose.connect(dbUrl, {
 
 const app = express();
 
+// ✅ TRUST PROXY - REQUIRED FOR RENDER
+app.set('trust proxy', 1);
+
 // ==============================================
-// ✅ MONGODB SESSION STORE - FOR v4.6.0
+// ✅ MONGODB SESSION STORE
 // ==============================================
 const store = MongoStore.create({
     mongoUrl: dbUrl,
@@ -55,7 +58,7 @@ store.on('error', function (error) {
 });
 
 // ==============================================
-// ✅ CORS CONFIGURATION - SINGLE INSTANCE
+// ✅ CORS CONFIGURATION
 // ==============================================
 const corsOptions = {
     origin: function (origin, callback) {
@@ -70,6 +73,7 @@ const corsOptions = {
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
+            console.log('❌ CORS blocked origin:', origin);
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -79,11 +83,10 @@ const corsOptions = {
     exposedHeaders: ['Set-Cookie', 'Cookie'],
 };
 
-// ✅ ONLY ONCE
 app.use(cors(corsOptions));
 
 // ==============================================
-// ✅ SESSION CONFIGURATION - SINGLE INSTANCE
+// ✅ SESSION CONFIGURATION
 // ==============================================
 const sessionConfig = {
     store: store,
@@ -92,13 +95,12 @@ const sessionConfig = {
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: false,  // ✅ Set to true if using HTTPS
+        sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     }
 };
 
-// ✅ ONLY ONCE
 app.use(session(sessionConfig));
 app.use(flash());
 
@@ -115,19 +117,11 @@ passport.deserializeUser(User.deserializeUser());
 // MIDDLEWARE
 // ==============================================
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 app.use(methodOverride('_method'));
 
-// Local variables
-app.use((req, res, next) => {
-    res.locals.currentUser = req.user;
-    res.locals.success = req.flash('success');
-    res.locals.error = req.flash('error');
-    next();
-});
-
 // ==============================================
-// ✅ REQUEST LOGGING MIDDLEWARE - FOR DEBUGGING
+// ✅ REQUEST LOGGING MIDDLEWARE
 // ==============================================
 app.use((req, res, next) => {
     console.log(`📨 ${req.method} ${req.url}`);
@@ -137,7 +131,7 @@ app.use((req, res, next) => {
 });
 
 // ==============================================
-// ✅ TEST ROUTE - Verify CORS & Session
+// ✅ TEST ROUTE
 // ==============================================
 app.get('/api/test', (req, res) => {
     res.json({
@@ -174,10 +168,10 @@ app.get('/api/current-user', (req, res) => {
 });
 
 // ==============================================
-// 👇 MOUNT ALL ROUTES - CORRECT ORDER
+// 👇 MOUNT ALL ROUTES - API ROUTES FIRST
 // ==============================================
 
-// 1️⃣ API ROUTES FIRST
+// 1️⃣ API ROUTES
 app.use('/uploads', uploadRoutes);
 app.use('/repairs', repairRoutes);
 app.use('/expenses', expenseRoutes);
@@ -186,17 +180,13 @@ app.use('/transactions', transactionRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/track', trackRoutes);
 
-// 2️⃣ AUTH ROUTES
+// 2️⃣ AUTH & USER ROUTES
 app.use('/', authRoutes);
-
-// 3️⃣ USER ROUTES
 app.use('/', userRoutes);
-
-// 4️⃣ ADMIN ROUTES
 app.use('/', adminRoutes);
 
 // ==============================================
-// LANDING - MUST BE AFTER ALL ROUTES
+// LANDING
 // ==============================================
 app.get('/', (req, res) => {
     res.json({
@@ -213,15 +203,12 @@ app.get('/', (req, res) => {
 });
 
 // ==============================================
-// 👇 ERROR HANDLING - MUST BE LAST
+// 👇 ERROR HANDLING
 // ==============================================
-
-// Catch-all for 404
 app.all('/*', (req, res, next) => {
     next(new ExpressError('Page Not Found / Resource Missing', 404));
 });
 
-// Global error handler
 app.use((err, req, res, next) => {
     let { statusCode = 500, message = 'Something went wrong!' } = err;
 
@@ -247,5 +234,4 @@ const port = process.env.PORT || 5000;
 app.listen(port, () => {
     console.log(`🚀 AsoComms API running on port ${port}`);
     console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🔗 Test CORS: http://localhost:${port}/api/test`);
 });
