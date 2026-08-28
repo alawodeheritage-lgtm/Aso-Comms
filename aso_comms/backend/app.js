@@ -64,49 +64,56 @@ store.on('error', function (error) {
 // ==============================================
 // ✅ CORS CONFIGURATION - FIXED
 // ==============================================
+// backend/app.js
+// ==============================================
+// ✅ CORS CONFIGURATION - EXPLICIT
+// ==============================================
 const corsOptions = {
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
         const allowedOrigins = [
             'http://localhost:5173',
             'http://localhost:5174',
-            'https://asocomms.vercel.app',
             'https://aso-comms-six.vercel.app',
+            'https://asocomms.vercel.app',
             'https://asocomms-backend.onrender.com'
         ];
-
+        if (!origin) return callback(null, true);
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true,
+    credentials: true,  // ✅ MUST BE TRUE
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
     exposedHeaders: ['Set-Cookie', 'Cookie'],
 };
 
 app.use(cors(corsOptions));
+app.use(cors(corsOptions));
 
 
-// ==============================================
-// ✅ SESSION CONFIGURATION
+
+
+
+
+// ✅ SESSION CONFIGURATION - FORCED FOR PRODUCTION
 // ==============================================
 const sessionConfig = {
     store: store,
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: true,  // ✅ FORCE true for Render (HTTPS)
+        sameSite: 'none',  // ✅ FORCE 'none' for cross-origin
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     }
 };
+
+app.use(session(sessionConfig));
 
 app.use(session(sessionConfig));
 app.use(flash());
