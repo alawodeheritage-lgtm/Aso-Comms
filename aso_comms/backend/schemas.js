@@ -11,7 +11,7 @@ module.exports.repairJoiSchema = Joi.object({
     status: Joi.string().valid('Pending', 'Diagnosing', 'Repairing', 'Ready', 'Collected').default('Pending'),
     priority: Joi.string().valid('low', 'medium', 'high').default('medium'),
     assignedTo: Joi.string().default('Unassigned'),
-    
+
     // Financials - only totalEstimate and amountPaid from frontend
     financials: Joi.object({
         totalEstimate: Joi.number().required().min(0),
@@ -22,7 +22,7 @@ module.exports.repairJoiSchema = Joi.object({
             .messages({
                 'number.max': 'Amount paid cannot be greater than the total repair cost!'
             }),
-    }().items(Joi.string()).optional().default([])
+    }).required()
 });
 
 module.exports.expenseJoiSchema = Joi.object({
