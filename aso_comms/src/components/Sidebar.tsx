@@ -84,13 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
 
   // ✅ Loading state
   if (isLoading || !user) {
-    return (
-      <aside className="fixed md:relative z-40 bg-white border-r border-slate-200/80 shadow-sm w-64 h-[calc(100vh-4rem)] overflow-y-auto pt-4">
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#1A365D] border-t-transparent"></div>
-        </div>
-      </aside>
-    );
+    return null;
   }
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
@@ -153,7 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
           fixed md:relative z-40 bg-white border-r border-slate-200/80 shadow-sm
           transition-all duration-300 ease-in-out
           ${isMobileOpen ? 'left-0' : '-left-64 md:left-0'}
-          w-64 h-[calc(100vh-4rem)] overflow-y-auto flex flex-col
+          w-64 self-stretch min-h-[calc(100vh-4rem)] h-[calc(100vh-4rem)] overflow-y-auto md:h-auto md:min-h-full md:overflow-visible flex flex-col
         `}
       >
         {/* Close button inside sidebar for mobile */}
@@ -183,7 +177,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
         </div>
 
         {/* Navigation */}
-        <nav className="px-3 py-4 space-y-1 flex-1 overflow-y-auto">
+        <nav className="px-3 py-4 space-y-1 flex-1">
           {links.map((link) => (
             <Link
               key={link.path}
@@ -215,7 +209,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
           >
             {isLoggingOut ? (
               <>
-                <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                <span className="material-symbols-outlined text-base">logout</span>
                 Logging out...
               </>
             ) : (
@@ -242,13 +236,6 @@ const Sidebar: React.FC<SidebarProps> = ({ userType = 'customer' }) => {
           vertical-align: middle;
           display: inline-block;
           line-height: 1;
-        }
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
         }
       `}</style>
     </>

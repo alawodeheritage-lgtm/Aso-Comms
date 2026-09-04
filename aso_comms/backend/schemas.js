@@ -22,10 +22,7 @@ module.exports.repairJoiSchema = Joi.object({
             .messages({
                 'number.max': 'Amount paid cannot be greater than the total repair cost!'
             }),
-    }).required(),
-    
-    // Images - optional array
-    images: Joi.array().items(Joi.string()).optional().default([])
+    }().items(Joi.string()).optional().default([])
 });
 
 module.exports.expenseJoiSchema = Joi.object({

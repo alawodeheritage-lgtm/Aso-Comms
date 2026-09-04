@@ -85,15 +85,15 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   return (
-    <>
+    <div className="flex flex-1 flex-col">
       <Navbar />
-      <div className="flex flex-1 pt-16">
+      <div className="flex flex-1 items-stretch pt-16">
         <Sidebar />
-        <main className="flex-1 p-4 md:p-6 lg:p-8">
+        <main className="min-w-0 flex-1 p-4 md:p-6 lg:p-8">
           {children}
         </main>
       </div>
-    </>
+    </div>
   );
 };
 
@@ -105,18 +105,7 @@ const ProtectedRoute: React.FC<{
   allowedRoles?: ('customer' | 'manager' | 'ceo')[];
   redirectTo?: string;
 }> = ({ children, allowedRoles, redirectTo = '/login' }) => {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#1A365D] border-t-transparent"></div>
-          <p className="mt-3 text-sm font-medium text-slate-500">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const { user } = useAuth();
 
   if (!user) return <Navigate to={redirectTo} replace />;
 
@@ -139,125 +128,125 @@ const App: React.FC = () => {
         <div className="min-h-screen flex flex-col bg-[#F8F6F1]">
           <AppLayout>
             <Routes>
-              {/* Auth */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/verify-otp" element={<VerifyOTP />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
+                {/* Auth */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/verify-otp" element={<VerifyOTP />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
-              {/* Public */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/track" element={<TrackStatus />} />
-              <Route path="/track/:id" element={<TrackStatus />} />
-              <Route path="/profile/:id" element={<ShowProfile />} />
-              <Route path="/support" element={<Support />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/terms" element={<TermsOfService />} />
+                {/* Public */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/track" element={<TrackStatus />} />
+                <Route path="/track/:id" element={<TrackStatus />} />
+                <Route path="/profile/:id" element={<ShowProfile />} />
+                <Route path="/support" element={<Support />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
 
-              {/* Customer (protected) */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={['customer']}>
-                    <CustomerDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/complaints/*"
-                element={
-                  <ProtectedRoute allowedRoles={['customer']}>
-                    <CustomerComplaints />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute allowedRoles={['customer']}>
-                    <CustomerProfile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notifications"
-                element={
-                  <ProtectedRoute allowedRoles={['customer']}>
-                    <Notifications />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute allowedRoles={['customer']}>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Customer (protected) */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={['customer']}>
+                      <CustomerDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/complaints/*"
+                  element={
+                    <ProtectedRoute allowedRoles={['customer']}>
+                      <CustomerComplaints />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute allowedRoles={['customer']}>
+                      <CustomerProfile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notifications"
+                  element={
+                    <ProtectedRoute allowedRoles={['customer']}>
+                      <Notifications />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute allowedRoles={['customer']}>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Admin (protected) */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'ceo']}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/repairs"
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'ceo']}>
-                    <AdminRepairs />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/expenses"
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'ceo']}>
-                    <AdminExpenses />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/complaints"
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'ceo']}>
-                    <AdminComplaints />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/financials"
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'ceo']}>
-                    <Financials />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/profile"
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'ceo']}>
-                    <AdminProfile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/create-staff"
-                element={
-                  <ProtectedRoute allowedRoles={['manager', 'ceo']}>
-                    <CreateStaff />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Admin (protected) */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute allowedRoles={['manager', 'ceo']}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/repairs"
+                  element={
+                    <ProtectedRoute allowedRoles={['manager', 'ceo']}>
+                      <AdminRepairs />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/expenses"
+                  element={
+                    <ProtectedRoute allowedRoles={['manager', 'ceo']}>
+                      <AdminExpenses />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/complaints"
+                  element={
+                    <ProtectedRoute allowedRoles={['manager', 'ceo']}>
+                      <AdminComplaints />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/financials"
+                  element={
+                    <ProtectedRoute allowedRoles={['manager', 'ceo']}>
+                      <Financials />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/profile"
+                  element={
+                    <ProtectedRoute allowedRoles={['manager', 'ceo']}>
+                      <AdminProfile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/create-staff"
+                  element={
+                    <ProtectedRoute allowedRoles={['manager', 'ceo']}>
+                      <CreateStaff />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
           <Footer />
