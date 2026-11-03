@@ -1,6 +1,7 @@
 // src/pages/Auth/Register.tsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { authAPI } from '../../api/auth';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -38,32 +39,17 @@ const Register: React.FC = () => {
     setErrorMsg('');
 
     try {
-      const response = await fetch('http://localhost:5000/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          username: formData.fullName.trim(),
-          email: formData.email.trim(),
-          phoneNumber: formData.phone.trim(),
-          password: formData.password
-        })
+      await authAPI.register({
+        username: formData.fullName.trim(),
+        email: formData.email.trim(),
+        phoneNumber: formData.phone.trim(),
+        password: formData.password
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // console.log('📧 Registration successful!');
-        // console.log('🔑 Your OTP is:', data.otp);
-        localStorage.setItem('registerEmail', formData.email);
-        navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}&purpose=signup`);
-      } else {
-        setErrorMsg(data.error || 'Registration failed. Please try again.');
-        setIsLoading(false);
-      }
+      localStorage.setItem('registerEmail', formData.email);
+      navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}&purpose=signup`);
     } catch (err: any) {
       // console.error('Registration error:', err);
-      setErrorMsg('Network error. Please check if the server is running.');
+      setErrorMsg(err.response?.data?.error || 'Network error. Please check if the server is running.');
       setIsLoading(false);
     }
   };

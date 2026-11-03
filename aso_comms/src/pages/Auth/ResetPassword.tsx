@@ -1,7 +1,7 @@
 // src/pages/Auth/ResetPassword.tsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../../api/axios';
+import { authAPI } from '../../api/auth';
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ const ResetPassword: React.FC = () => {
     setErrorMsg('');
 
     try {
-      await api.post('/reset-password', { password });
+      await authAPI.resetPassword({ password });
       navigate('/login');
     } catch (err: any) {
       setErrorMsg(err.response?.data?.error || 'Failed to reset password. Please try again.');

@@ -1,6 +1,7 @@
 // src/pages/Auth/VerifyOTP.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { authAPI } from '../../api/auth';
 
 const VerifyOTP: React.FC = () => {
   const navigate = useNavigate();
@@ -46,14 +47,11 @@ const VerifyOTP: React.FC = () => {
     // console.log('========================================');
 
     try {
-      const response = await fetch('http://localhost:5000/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, otp, purpose })
+      const data = await authAPI.verifyOTP({
+        email,
+        otp,
+        purpose: purpose as 'signup' | 'reset' | 'staff'
       });
-
-      const data = await response.json();
       // console.log('📧 Verification response:', data);
 
       if (data.success) {
@@ -82,14 +80,7 @@ const VerifyOTP: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:5000/resend-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, purpose })
-      });
-
-      const data = await response.json();
+      const data = await authAPI.resendOTP({ email, purpose });
 
       if (data.success) {
         setCountdown(60);

@@ -1,6 +1,7 @@
 // src/pages/Auth/ForgotPassword.tsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { authAPI } from '../../api/auth';
 
 const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -22,14 +23,7 @@ const ForgotPassword: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:5000/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email })
-      });
-
-      const data = await response.json();
+      const data = await authAPI.forgotPassword({ email });
 
       if (data.success) {
         localStorage.setItem('resetEmail', email);
@@ -39,7 +33,7 @@ const ForgotPassword: React.FC = () => {
       } else {
         setError(data.error || 'Failed to send reset link. Please try again.');
       }
-    } catch (err: any) {
+    } catch {
       // console.error('Error:', err);
       setError('Network error. Please check if the server is running.');
     } finally {

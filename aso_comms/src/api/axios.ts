@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.PROD
+  baseURL: import.meta.env.MODE === 'production'
     ? '/backend'
     : (import.meta.env.VITE_API_URL || 'http://localhost:5000'),
   withCredentials: true,  // ✅ CRITICAL - sends cookies
@@ -12,11 +12,11 @@ const api = axios.create({
   },
 });
 
-// ✅ Request interceptor - logs every request
+// ✅ Request interceptor
 api.interceptors.request.use(
   (config) => {
-    console.log('🚀 API Request:', config.method?.toUpperCase(), config.baseURL + config.url);
-    console.log('🔑 With Credentials:', config.withCredentials);
+    // console.log('🚀 API Request:', config.method?.toUpperCase(), config.baseURL + config.url);
+    // console.log('🔑 With Credentials:', config.withCredentials);
     return config;
   },
   (error) => {
@@ -25,10 +25,10 @@ api.interceptors.request.use(
   }
 );
 
-// ✅ Response interceptor - logs every response
+// ✅ Response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ API Response:', response.status, response.config.url);
+    // console.log('✅ API Response:', response.status, response.config.url);
     return response;
   },
   (error) => {
